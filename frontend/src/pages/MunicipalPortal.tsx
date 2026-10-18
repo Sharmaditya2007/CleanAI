@@ -244,8 +244,8 @@ export const MunicipalPortal: React.FC = () => {
                   required
                   value={officerEmail}
                   onChange={(e) => setOfficerEmail(e.target.value)}
-                  placeholder="officer@cleanai.gov"
-                  className="w-full pl-10 pr-3.5 py-2.5 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] placeholder-[#6E6E73] focus:border-[#F5F5F7]/40 focus:outline-hidden"
+                  placeholder=""
+                  className="w-full pl-10 pr-3.5 py-2.5 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] focus:border-[#F5F5F7]/40 focus:outline-hidden"
                 />
               </div>
             </div>
@@ -259,8 +259,8 @@ export const MunicipalPortal: React.FC = () => {
                   required
                   value={officerPassword}
                   onChange={(e) => setOfficerPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full pl-10 pr-3.5 py-2.5 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] placeholder-[#6E6E73] focus:border-[#F5F5F7]/40 focus:outline-hidden"
+                  placeholder=""
+                  className="w-full pl-10 pr-3.5 py-2.5 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] focus:border-[#F5F5F7]/40 focus:outline-hidden"
                 />
               </div>
             </div>
@@ -679,7 +679,7 @@ export const MunicipalPortal: React.FC = () => {
                 required
                 value={regForm.name}
                 onChange={(e) => setRegForm({ ...regForm, name: e.target.value })}
-                placeholder="e.g. Central Transit Station Public Convenience"
+                placeholder=""
                 className="w-full px-3.5 py-2.5 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] focus:outline-hidden"
               />
             </div>
@@ -694,7 +694,7 @@ export const MunicipalPortal: React.FC = () => {
                   required
                   value={regForm.city}
                   onChange={(e) => setRegForm({ ...regForm, city: e.target.value })}
-                  placeholder="e.g. Metro City"
+                  placeholder=""
                   className="w-full px-3.5 py-2.5 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] focus:outline-hidden"
                 />
               </div>
@@ -708,7 +708,7 @@ export const MunicipalPortal: React.FC = () => {
                   required
                   value={regForm.locality}
                   onChange={(e) => setRegForm({ ...regForm, locality: e.target.value })}
-                  placeholder="e.g. Downtown Sector 1"
+                  placeholder=""
                   className="w-full px-3.5 py-2.5 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] focus:outline-hidden"
                 />
               </div>
@@ -723,7 +723,7 @@ export const MunicipalPortal: React.FC = () => {
                 required
                 value={regForm.address}
                 onChange={(e) => setRegForm({ ...regForm, address: e.target.value })}
-                placeholder="e.g. Opposite Metro Gate 4, Inner Circle"
+                placeholder=""
                 className="w-full px-3.5 py-2.5 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] focus:outline-hidden"
               />
             </div>
@@ -792,7 +792,7 @@ export const MunicipalPortal: React.FC = () => {
                   type="text"
                   value={regForm.opening_hours}
                   onChange={(e) => setRegForm({ ...regForm, opening_hours: e.target.value })}
-                  placeholder="e.g. 24x7 or 06:00 - 23:00"
+                  placeholder=""
                   className="w-full px-3.5 py-2.5 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] focus:outline-hidden"
                 />
               </div>
@@ -803,7 +803,7 @@ export const MunicipalPortal: React.FC = () => {
                   type="text"
                   value={regForm.contact_number}
                   onChange={(e) => setRegForm({ ...regForm, contact_number: e.target.value })}
-                  placeholder="+91-11-2334455"
+                  placeholder=""
                   className="w-full px-3.5 py-2.5 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] focus:outline-hidden"
                 />
               </div>
@@ -875,7 +875,7 @@ export const MunicipalPortal: React.FC = () => {
               rows={3}
               value={resolutionNote}
               onChange={(e) => setResolutionNote(e.target.value)}
-              placeholder="e.g. Sanitation team deployed. Fixtures repaired and toilet floor bleached."
+              placeholder=""
               className="w-full px-3 py-2 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] focus:outline-hidden"
             />
 

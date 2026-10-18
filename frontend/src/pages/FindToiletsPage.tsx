@@ -169,13 +169,13 @@ export const FindToiletsPage: React.FC = () => {
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#161616] border border-[#333333] text-[#A1A1A6] text-xs font-medium">
             <ShieldCheck size={14} className="text-emerald-400" />
-            <span>Official Municipal Sanitation Registry</span>
+            <span>Open Civic Network • No Citizen Login Required</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-[#F5F5F7]">
             Find Public Toilets
           </h1>
           <p className="text-sm text-[#A1A1A6] max-w-2xl leading-relaxed">
-            Browse verified public restrooms with official municipal cleanliness status, operating hours, available facilities, and Google Maps turn-by-turn directions. No login required.
+            Browse verified public restrooms with official municipal cleanliness status, operating hours, available facilities, and turn-by-turn directions. Open freely to all citizens without any login credentials.
           </p>
         </div>
 

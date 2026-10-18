@@ -13,7 +13,7 @@ export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [role, setRole] = useState<UserRole>('citizen');
+  const [role, setRole] = useState<UserRole>('officer');
   const [phone, setPhone] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -70,18 +70,18 @@ export const LoginPage: React.FC = () => {
 
   return (
     <div className="min-h-[85vh] bg-[#050505] flex items-center justify-center px-4 py-16">
-      <div className="relative w-full max-w-md bg-[#0D0D0D] rounded-3xl p-8 sm:p-10 border border-[#262626] shadow-2xl space-y-7">
+      <div className="relative w-full max-w-md bg-[#0D0D0D] rounded-3xl p-8 sm:p-10 border border-[#262626] shadow-2xl space-y-6">
         
         {/* Brand Header */}
-        <div className="text-center space-y-3">
+        <div className="text-center space-y-2">
           <div className="w-12 h-12 rounded-2xl bg-[#161616] border border-[#262626] flex items-center justify-center mx-auto shadow-inner text-[#F5F5F7]">
             <Sparkles size={22} />
           </div>
-          <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[#F5F5F7]">
-            {isRegister ? 'Create Clean AI Account' : 'Sign in to Clean AI'}
+          <h2 className="text-2xl font-semibold tracking-tight text-[#F5F5F7]">
+            {isRegister ? 'Register Staff Account' : 'Official Portal Login'}
           </h2>
           <p className="text-xs text-[#86868B] max-w-xs mx-auto">
-            AI-powered sanitation intelligence for modern public spaces.
+            Authorized municipal officers & facility maintenance contractors.
           </p>
 
           {/* Real-time Server Connectivity Badge */}
@@ -107,6 +107,26 @@ export const LoginPage: React.FC = () => {
           </div>
         </div>
 
+        {/* Citizen Notice Card - No Login Ever Required for Citizens */}
+        <div className="p-4 rounded-2xl bg-[#141414] border border-[#262626] text-center space-y-2">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#1E1E1E] text-[10px] font-semibold text-emerald-400 border border-emerald-500/20">
+            <span>Citizens: No Login Required</span>
+          </div>
+          <p className="text-xs text-[#A1A1A6] leading-relaxed">
+            Anyone can find toilets, view live cleanliness statuses, and report issues freely without any account or login.
+          </p>
+          <div className="pt-1">
+            <button
+              type="button"
+              onClick={() => navigate('/toilets')}
+              className="px-4 py-2 rounded-xl bg-[#F5F5F7] hover:bg-white text-[#050505] text-xs font-semibold transition-all inline-flex items-center gap-1.5 cursor-pointer shadow-sm"
+            >
+              <span>Explore Public Toilets</span>
+              <ArrowRight size={13} />
+            </button>
+          </div>
+        </div>
+
         {error && (
           <div className="p-3.5 bg-rose-500/10 border border-rose-500/25 rounded-2xl text-rose-400 text-xs font-semibold flex flex-col gap-1.5">
             <span>{error}</span>
@@ -125,7 +145,7 @@ export const LoginPage: React.FC = () => {
           </div>
         )}
 
-        {/* Form */}
+        {/* Form - Zero Fake Placeholders */}
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           {isRegister && (
             <div>
@@ -135,21 +155,21 @@ export const LoginPage: React.FC = () => {
                 required
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                placeholder="e.g. Ramesh Chandra"
-                className="w-full p-3 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7] placeholder-[#6E6E73] focus:border-[#F5F5F7]/40 focus:outline-hidden transition-colors"
+                placeholder=""
+                className="w-full p-3 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7] focus:border-[#F5F5F7]/40 focus:outline-hidden transition-colors"
               />
             </div>
           )}
 
           <div>
-            <label className="block font-semibold text-[#A1A1A6] mb-1.5">Email Address</label>
+            <label className="block font-semibold text-[#A1A1A6] mb-1.5">Official Email Address</label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="e.g. yourname@domain.gov"
-              className="w-full p-3 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7] placeholder-[#6E6E73] focus:border-[#F5F5F7]/40 focus:outline-hidden transition-colors"
+              placeholder=""
+              className="w-full p-3 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7] focus:border-[#F5F5F7]/40 focus:outline-hidden transition-colors"
             />
           </div>
 
@@ -160,25 +180,24 @@ export const LoginPage: React.FC = () => {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full p-3 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7] placeholder-[#6E6E73] focus:border-[#F5F5F7]/40 focus:outline-hidden transition-colors"
+              placeholder=""
+              className="w-full p-3 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7] focus:border-[#F5F5F7]/40 focus:outline-hidden transition-colors"
             />
           </div>
 
           {isRegister && (
             <div>
-              <label className="block font-semibold text-[#A1A1A6] mb-1.5">Account Role</label>
-              <div className="grid grid-cols-3 gap-2">
+              <label className="block font-semibold text-[#A1A1A6] mb-1.5">Official Role</label>
+              <div className="grid grid-cols-2 gap-2">
                 {[
-                  { id: 'citizen', label: 'Citizen' },
-                  { id: 'officer', label: 'Officer' },
-                  { id: 'owner', label: 'Facility Owner' }
+                  { id: 'officer', label: 'Municipal Officer' },
+                  { id: 'owner', label: 'Facility Owner / Contractor' }
                 ].map((r) => (
                   <button
                     type="button"
                     key={r.id}
                     onClick={() => setRole(r.id as UserRole)}
-                    className={`py-2 px-1 text-center rounded-xl font-semibold border transition-all ${
+                    className={`py-2 px-2 text-center rounded-xl font-semibold border transition-all text-xs cursor-pointer ${
                       role === r.id
                         ? 'bg-[#F5F5F7] text-[#050505] border-[#F5F5F7]'
                         : 'bg-[#161616] text-[#A1A1A6] border-[#262626] hover:text-[#F5F5F7]'
@@ -200,7 +219,7 @@ export const LoginPage: React.FC = () => {
               <Loader2 size={16} className="animate-spin text-[#050505]" />
             ) : (
               <>
-                <span>{isRegister ? 'Register Account' : 'Sign In'}</span>
+                <span>{isRegister ? 'Register Official Account' : 'Sign In'}</span>
                 <ArrowRight size={14} />
               </>
             )}
@@ -218,9 +237,9 @@ export const LoginPage: React.FC = () => {
             className="text-xs text-[#A1A1A6] hover:text-[#F5F5F7] transition-colors cursor-pointer"
           >
             {isRegister ? (
-              <span>Already have an account? <strong className="text-[#F5F5F7] underline">Sign in</strong></span>
+              <span>Have an official account? <strong className="text-[#F5F5F7] underline">Sign in</strong></span>
             ) : (
-              <span>New to Clean AI? <strong className="text-[#F5F5F7] underline">Create an account</strong></span>
+              <span>Register new officer / contractor? <strong className="text-[#F5F5F7] underline">Create staff account</strong></span>
             )}
           </button>
         </div>

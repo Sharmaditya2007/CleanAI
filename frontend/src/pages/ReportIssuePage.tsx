@@ -175,15 +175,15 @@ export const ReportIssuePage: React.FC = () => {
       
       {/* Header */}
       <div className="text-center space-y-3">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#161616] border border-[#262626] text-xs font-medium text-[#A1A1A6]">
-          <AlertCircle size={14} className="text-amber-400" />
-          <span>Public Citizen Reporting</span>
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#161616] border border-[#262626] text-xs font-medium text-emerald-400">
+          <ShieldCheck size={14} className="text-emerald-400" />
+          <span>No Citizen Account or Login Needed</span>
         </div>
         <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-[#F5F5F7]">
           Report a Sanitation Issue
         </h1>
         <p className="text-sm text-[#A1A1A6] max-w-xl mx-auto">
-          Help maintain public hygiene standards. Submit complaints directly to municipal authorities without logging in.
+          Help maintain civic hygiene standards. Submit complaints directly to municipal authorities without any login or credentials.
         </p>
       </div>
 
@@ -325,8 +325,8 @@ export const ReportIssuePage: React.FC = () => {
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe the issue (e.g. running tap leaking, cubicle door latch broken, uncleaned floor)..."
-              className="w-full px-3.5 py-2.5 bg-[#161616] border border-[#262626] rounded-xl text-sm text-[#F5F5F7] placeholder-[#6E6E73] focus:border-[#F5F5F7]/40 focus:outline-hidden"
+              placeholder=""
+              className="w-full px-3.5 py-2.5 bg-[#161616] border border-[#262626] rounded-xl text-sm text-[#F5F5F7] focus:border-[#F5F5F7]/40 focus:outline-hidden"
             />
           </div>
 
@@ -376,8 +376,8 @@ export const ReportIssuePage: React.FC = () => {
               type="email"
               value={reporterEmail}
               onChange={(e) => setReporterEmail(e.target.value)}
-              placeholder="e.g. name@example.com"
-              className="w-full px-3.5 py-2.5 bg-[#161616] border border-[#262626] rounded-xl text-sm text-[#F5F5F7] placeholder-[#6E6E73] focus:border-[#F5F5F7]/40 focus:outline-hidden"
+              placeholder=""
+              className="w-full px-3.5 py-2.5 bg-[#161616] border border-[#262626] rounded-xl text-sm text-[#F5F5F7] focus:border-[#F5F5F7]/40 focus:outline-hidden"
             />
           </div>
 
@@ -423,10 +423,10 @@ export const ReportIssuePage: React.FC = () => {
             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6E6E73]" />
             <input
               type="text"
-              placeholder="e.g. CMP-2026-1049"
+              placeholder=""
               value={trackRef}
               onChange={(e) => setTrackRef(e.target.value.toUpperCase())}
-              className="w-full pl-10 pr-4 py-2.5 bg-[#161616] border border-[#262626] rounded-xl text-sm font-mono text-[#F5F5F7] placeholder-[#6E6E73] focus:border-[#F5F5F7]/40 focus:outline-hidden"
+              className="w-full pl-10 pr-4 py-2.5 bg-[#161616] border border-[#262626] rounded-xl text-sm font-mono text-[#F5F5F7] focus:border-[#F5F5F7]/40 focus:outline-hidden"
             />
           </div>
           <button

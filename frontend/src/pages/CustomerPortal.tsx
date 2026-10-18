@@ -435,7 +435,7 @@ export const CustomerPortal: React.FC = () => {
             <input
               type="text"
               required
-              placeholder="Enter reference number (e.g. CMP-2026-9042)"
+              placeholder=""
               value={trackRef}
               onChange={(e) => setTrackRef(e.target.value)}
               className="flex-1 text-xs p-3 bg-[#161616] border border-[#262626] rounded-xl font-mono uppercase text-[#F5F5F7] placeholder-[#6E6E73] focus:border-[#2997FF] focus:outline-hidden"
@@ -548,7 +548,7 @@ export const CustomerPortal: React.FC = () => {
                       type="email"
                       value={reportEmail}
                       onChange={(e) => setReportEmail(e.target.value)}
-                      placeholder="e.g. citizen@gmail.com"
+                      placeholder=""
                       className="w-full text-xs p-2.5 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7]"
                     />
                   </div>

@@ -119,8 +119,8 @@ export const LandingPage: React.FC = () => {
         
         {/* Pill Tag */}
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#111111] border border-[#262626] text-xs font-medium text-[#A1A1A6] shadow-sm">
-          <ShieldCheck size={14} className="text-[#F5F5F7]" />
-          <span>Official Municipal Public Toilet Registry</span>
+          <ShieldCheck size={14} className="text-emerald-400" />
+          <span>Open Civic Utility • 100% Free & No Citizen Login Required</span>
         </div>
 
         {/* Clear Heading */}
@@ -133,7 +133,7 @@ export const LandingPage: React.FC = () => {
 
         {/* Subtitle */}
         <p className="text-base sm:text-lg text-[#A1A1A6] max-w-2xl mx-auto leading-relaxed">
-          Locate certified clean restrooms across the city. Cleanliness status is inspected with AI computer vision and verified by municipal health officers.
+          Open to all citizens without any login or account. Browse certified public restrooms, check live AI-verified hygiene ratings, and report civic sanitation issues directly.
         </p>
 
         {/* Search Bar */}
@@ -142,7 +142,7 @@ export const LandingPage: React.FC = () => {
             <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#6E6E73]" />
             <input
               type="text"
-              placeholder="Search by city, locality, or landmark (e.g. Central Station, Market, Terminal)..."
+              placeholder="Search by city, locality, or landmark..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-11 pr-4 py-3 bg-transparent text-sm text-[#F5F5F7] placeholder-[#6E6E73] focus:outline-hidden"
