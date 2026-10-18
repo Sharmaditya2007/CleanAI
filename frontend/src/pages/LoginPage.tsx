@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Sparkles, ShieldCheck, Building2, User, Lock, Mail, ArrowRight, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types';
+import { api } from '../services/api';
 
 export const LoginPage: React.FC = () => {
   const { login, register } = useAuth();
@@ -31,12 +32,24 @@ export const LoginPage: React.FC = () => {
           role,
           phone: phone || undefined
         });
+        if (role === 'officer') navigate('/municipal');
+        else if (role === 'owner') navigate('/owner');
+        else navigate('/customer');
       } else {
         await login(email, password);
+        const profile = await api.getMe().catch(() => null);
+        const userRole = profile?.role;
+        if (userRole === 'officer') navigate('/municipal');
+        else if (userRole === 'owner') navigate('/owner');
+        else navigate('/customer');
       }
-      navigate('/customer');
     } catch (err: any) {
-      setError(err.message || 'Authentication failed');
+      const msg = err?.message || '';
+      if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || err.name === 'TypeError') {
+        setError('Clean AI backend server is unreachable. Please verify the backend is running and retry.');
+      } else {
+        setError(msg || 'Authentication failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -127,8 +140,20 @@ export const LoginPage: React.FC = () => {
         </div>
 
         {error && (
-          <div className="p-3.5 bg-[#FF453A]/10 border border-[#FF453A]/25 rounded-2xl text-[#FF453A] text-xs font-semibold">
-            {error}
+          <div className="p-3.5 bg-[#FF453A]/10 border border-[#FF453A]/25 rounded-2xl text-[#FF453A] text-xs font-semibold flex flex-col gap-1.5">
+            <span>{error}</span>
+            {error.includes('already registered') && (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsRegister(false);
+                  setError(null);
+                }}
+                className="text-left text-[#2997FF] hover:underline cursor-pointer text-[11px]"
+              >
+                Switch to Sign In &rarr;
+              </button>
+            )}
           </div>
         )}
 
