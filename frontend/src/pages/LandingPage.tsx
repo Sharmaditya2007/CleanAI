@@ -39,43 +39,61 @@ export const LandingPage: React.FC = () => {
     rate: 0
   });
   const [modelClassesCount, setModelClassesCount] = useState<number | null>(null);
+  const [loadingToilets, setLoadingToilets] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [sampleResult, setSampleResult] = useState<AIInferenceResult | null>(null);
   const [testingAi, setTestingAi] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function loadData() {
-      try {
-        const [list, health] = await Promise.allSettled([
-          api.getToilets(),
-          api.getHealth()
-        ]);
-
-        if (list.status === 'fulfilled') {
-          const tList = list.value;
-          setToilets(tList);
-          if (tList.length > 0) setSelectedToilet(tList[0]);
-          
-          const clean = tList.filter(t => t.verified_status === 'Clean').length;
-          const needsClean = tList.filter(t => t.verified_status === 'Needs Cleaning').length;
-          const total = tList.length;
-          setStats({
-            total,
-            clean,
-            needsCleaning: needsClean,
-            rate: total > 0 ? Math.round((clean / total) * 100) : 0
-          });
-        }
-
-        if (health.status === 'fulfilled' && health.value?.model?.classes_count) {
-          setModelClassesCount(health.value.model.classes_count);
-        }
-      } catch (e) {
-        console.warn('Could not load landing stats:', e);
-      }
-    }
     loadData();
   }, []);
+
+  const loadData = async (retries = 2) => {
+    setLoadingToilets(true);
+    setLoadError(null);
+    try {
+      const [list, health] = await Promise.allSettled([
+        api.getToilets(),
+        api.getHealth()
+      ]);
+
+      if (list.status === 'fulfilled') {
+        const tList = list.value;
+        setToilets(tList);
+        if (tList.length > 0) setSelectedToilet(tList[0]);
+        
+        const clean = tList.filter(t => t.verified_status === 'Clean').length;
+        const needsClean = tList.filter(t => t.verified_status === 'Needs Cleaning').length;
+        const total = tList.length;
+        setStats({
+          total,
+          clean,
+          needsCleaning: needsClean,
+          rate: total > 0 ? Math.round((clean / total) * 100) : 0
+        });
+        setLoadingToilets(false);
+      } else {
+        if (retries > 0) {
+          setTimeout(() => loadData(retries - 1), 1200);
+        } else {
+          setLoadError('Failed to retrieve facilities from server.');
+          setLoadingToilets(false);
+        }
+      }
+
+      if (health.status === 'fulfilled' && health.value?.model?.classes_count) {
+        setModelClassesCount(health.value.model.classes_count);
+      }
+    } catch (e: any) {
+      if (retries > 0) {
+        setTimeout(() => loadData(retries - 1), 1200);
+      } else {
+        setLoadError(e.message || 'Failed to connect to backend.');
+        setLoadingToilets(false);
+      }
+    }
+  };
 
   const handleRunSampleAi = async () => {
     setTestingAi(true);
@@ -408,7 +426,7 @@ export const LandingPage: React.FC = () => {
             Every location. A clearer picture.
           </h2>
           <p className="text-base sm:text-lg text-[#86868B] leading-relaxed">
-            Real registered public restrooms rendered on CartoDB Dark Matter tiles with verified status badges and precision GPS telemetry.
+            Real registered public restrooms rendered on dark spatial maps with verified status badges and precision GPS telemetry.
           </p>
         </div>
 
@@ -438,7 +456,25 @@ export const LandingPage: React.FC = () => {
               </div>
 
               <div className="space-y-2.5 max-h-[330px] overflow-y-auto pr-1">
-                {toilets.length === 0 ? (
+                {loadingToilets ? (
+                  <div className="py-12 text-center text-[#86868B] space-y-2">
+                    <Loader2 size={24} className="animate-spin mx-auto text-[#2997FF]" />
+                    <p className="text-xs font-semibold text-[#F5F5F7]">Querying municipal facilities...</p>
+                    <p className="text-[11px] text-[#6E6E73]">Retrieving verified coordinates</p>
+                  </div>
+                ) : loadError ? (
+                  <div className="py-10 text-center text-[#86868B] space-y-2">
+                    <AlertTriangle size={24} className="mx-auto text-[#FF9F0A]" />
+                    <p className="text-xs font-semibold text-[#F5F5F7]">Could not load points</p>
+                    <p className="text-[11px] text-[#86868B]">{loadError}</p>
+                    <button
+                      onClick={() => loadData(2)}
+                      className="mt-2 px-3 py-1 bg-[#1A1A1A] hover:bg-[#262626] text-xs font-semibold text-[#2997FF] rounded-lg border border-[#333333] transition-colors"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                ) : toilets.length === 0 ? (
                   <div className="py-12 text-center text-[#86868B] space-y-2">
                     <MapPin size={24} className="mx-auto text-[#6E6E73] opacity-40" />
                     <p className="text-xs font-semibold text-[#F5F5F7]">No toilets registered yet</p>

@@ -248,3 +248,13 @@
 .animate-pulse-wave {
   animation: pulse-wave-expand 1.8s cubic-bezier(0.16, 1, 0.3, 1) infinite;
 }
+
+/* Sleek Apple-Minimalist Dark Map (100% Free, Zero API Keys, Zero Watermarks) */
+.clean-ai-dark-tiles {
+  filter: invert(100%) hue-rotate(180deg) brightness(85%) contrast(115%);
+}
+
+.leaflet-container {
+  background-color: #0A0A0A !important;
+}
+

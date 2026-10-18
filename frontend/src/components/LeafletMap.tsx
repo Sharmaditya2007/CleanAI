@@ -36,11 +36,11 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         scrollWheelZoom: true
       });
 
-      // CartoDB Dark Matter tile layer for cinematic Apple-style dark map
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://carto.com/attributions">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        subdomains: 'abcd',
-        maxZoom: 19
+      // Ultra-clean Apple-style dark map tiles using OpenStreetMap with dark filter (Zero API key, zero watermarks)
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19,
+        className: 'clean-ai-dark-tiles'
       }).addTo(map);
 
       mapInstanceRef.current = map;
