@@ -276,8 +276,11 @@ export const LandingPage: React.FC = () => {
             <span>Loading verified toilets from database...</span>
           </div>
         ) : recentlyInspected.length === 0 ? (
-          <div className="bg-[#0D0D0D] border border-[#262626] rounded-2xl p-8 text-center text-xs text-[#A1A1A6]">
-            No public toilet records currently available.
+          <div className="bg-[#0D0D0D] border border-[#262626] rounded-2xl p-10 text-center space-y-2">
+            <p className="text-sm font-semibold text-[#F5F5F7]">No Public Restrooms Registered Yet</p>
+            <p className="text-xs text-[#A1A1A6] max-w-md mx-auto">
+              The municipal database is clean and ready for production. Registered public facilities will appear here once inspected and verified by municipal officers.
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

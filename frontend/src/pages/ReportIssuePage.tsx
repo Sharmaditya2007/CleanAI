@@ -266,6 +266,10 @@ export const ReportIssuePage: React.FC = () => {
             </label>
             {loadingToilets ? (
               <div className="h-10 bg-[#161616] rounded-xl animate-pulse" />
+            ) : toilets.length === 0 ? (
+              <div className="p-3 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#A1A1A6]">
+                No public restrooms are currently registered in the database. Municipal authorities can register verified facilities in the Authority Dashboard.
+              </div>
             ) : (
               <select
                 value={selectedToiletId}
@@ -380,7 +384,7 @@ export const ReportIssuePage: React.FC = () => {
           {/* Submit Button */}
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || toilets.length === 0}
             className="w-full py-3 rounded-xl text-sm font-semibold text-[#050505] bg-[#F5F5F7] hover:bg-white transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 shadow-md"
           >
             {isSubmitting ? (

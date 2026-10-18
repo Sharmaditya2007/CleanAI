@@ -303,6 +303,30 @@ export const FindToiletsPage: React.FC = () => {
           <Loader2 size={32} className="animate-spin text-[#F5F5F7]" />
           <p className="text-sm text-[#A1A1A6]">Retrieving verified toilet records from municipal database...</p>
         </div>
+      ) : toilets.length === 0 ? (
+        <div className="bg-[#0D0D0D] border border-[#262626] rounded-2xl p-12 text-center space-y-4">
+          <div className="w-12 h-12 rounded-full bg-[#1A1A1A] border border-[#333333] flex items-center justify-center mx-auto text-[#6E6E73]">
+            <MapPin size={24} />
+          </div>
+          <h3 className="text-lg font-semibold text-[#F5F5F7]">No Public Toilets Registered Yet</h3>
+          <p className="text-xs sm:text-sm text-[#A1A1A6] max-w-md mx-auto">
+            The municipal registry is currently empty. Authorized municipal officers and registered facility owners can register verified public restrooms via the Authority Dashboard or Owner Portal.
+          </p>
+          <div className="flex items-center justify-center gap-3 pt-2">
+            <Link
+              to="/authority"
+              className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#F5F5F7] text-[#050505] hover:bg-white transition-colors cursor-pointer"
+            >
+              Authority Dashboard
+            </Link>
+            <Link
+              to="/owner"
+              className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#161616] text-[#F5F5F7] hover:bg-[#202020] border border-[#262626] transition-colors cursor-pointer"
+            >
+              Owner Portal
+            </Link>
+          </div>
+        </div>
       ) : filteredToilets.length === 0 ? (
         <div className="bg-[#0D0D0D] border border-[#262626] rounded-2xl p-12 text-center space-y-4">
           <div className="w-12 h-12 rounded-full bg-[#1A1A1A] border border-[#333333] flex items-center justify-center mx-auto text-[#6E6E73]">

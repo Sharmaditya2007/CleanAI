@@ -427,8 +427,18 @@ export const MunicipalPortal: React.FC = () => {
               <p className="text-xs text-[#A1A1A6]">Loading facilities...</p>
             </div>
           ) : filteredToilets.length === 0 ? (
-            <div className="bg-[#0D0D0D] border border-[#262626] rounded-2xl p-12 text-center text-xs text-[#A1A1A6]">
-              No toilet records found.
+            <div className="bg-[#0D0D0D] border border-[#262626] rounded-2xl p-12 text-center space-y-3">
+              <ShieldCheck size={32} className="mx-auto text-[#6E6E73]" />
+              <h3 className="text-sm font-semibold text-[#F5F5F7]">No Public Toilets Registered Yet</h3>
+              <p className="text-xs text-[#A1A1A6] max-w-sm mx-auto">
+                The municipal registry is clean and ready for production. Click below to register your first verified facility.
+              </p>
+              <button
+                onClick={() => setActiveTab('register')}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#F5F5F7] text-[#050505] hover:bg-white cursor-pointer shadow-sm"
+              >
+                Register First Facility
+              </button>
             </div>
           ) : (
             <div className="bg-[#0D0D0D] border border-[#262626] rounded-2xl overflow-hidden shadow-xl">
@@ -505,8 +515,11 @@ export const MunicipalPortal: React.FC = () => {
           </div>
 
           {filteredComplaints.length === 0 ? (
-            <div className="bg-[#0D0D0D] border border-[#262626] rounded-2xl p-12 text-center text-xs text-[#A1A1A6]">
-              No complaints in this category.
+            <div className="bg-[#0D0D0D] border border-[#262626] rounded-2xl p-12 text-center space-y-2">
+              <p className="text-sm font-semibold text-[#F5F5F7]">No Customer Complaints</p>
+              <p className="text-xs text-[#A1A1A6]">
+                There are currently no citizen complaints filed. When citizens submit issues via the reporting portal, they will appear here in real time.
+              </p>
             </div>
           ) : (
             <div className="space-y-3">
