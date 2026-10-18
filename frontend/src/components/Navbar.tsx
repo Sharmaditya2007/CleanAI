@@ -93,14 +93,7 @@ export const Navbar: React.FC = () => {
                   <LogOut size={14} />
                 </button>
               </div>
-            ) : (
-              <Link
-                to="/login"
-                className="px-3.5 py-1.5 rounded-xl text-xs font-medium bg-[#141414] hover:bg-[#1E1E1E] text-[#A1A1A6] hover:text-[#F5F5F7] border border-[#262626] transition-colors"
-              >
-                Sign In
-              </Link>
-            )}
+            ) : null}
           </div>
 
           {/* Mobile Menu Button */}
@@ -132,33 +125,23 @@ export const Navbar: React.FC = () => {
             </Link>
           ))}
 
-          <div className="pt-3 border-t border-[#1C1C1E] flex items-center justify-between">
-            {user ? (
-              <div className="flex items-center justify-between w-full">
-                <div>
-                  <div className="text-xs font-semibold text-[#F5F5F7]">{user.full_name}</div>
-                  <div className="text-[10px] text-[#A1A1A6] uppercase">{user.role}</div>
-                </div>
-                <button
-                  onClick={() => {
-                    logout();
-                    setMobileMenuOpen(false);
-                  }}
-                  className="px-3 py-1.5 rounded-lg text-xs bg-rose-500/10 text-rose-400 border border-rose-500/20"
-                >
-                  Log Out
-                </button>
+          {user && (
+            <div className="pt-3 border-t border-[#1C1C1E] flex items-center justify-between">
+              <div>
+                <div className="text-xs font-semibold text-[#F5F5F7]">{user.full_name}</div>
+                <div className="text-[10px] text-[#A1A1A6] uppercase">{user.role}</div>
               </div>
-            ) : (
-              <Link
-                to="/login"
-                onClick={() => setMobileMenuOpen(false)}
-                className="block w-full text-center py-2 rounded-xl text-xs font-semibold bg-[#161616] border border-[#262626] text-[#A1A1A6] hover:text-[#F5F5F7]"
+              <button
+                onClick={() => {
+                  logout();
+                  setMobileMenuOpen(false);
+                }}
+                className="px-3 py-1.5 rounded-lg text-xs bg-rose-500/10 text-rose-400 border border-rose-500/20"
               >
-                Sign In
-              </Link>
-            )}
-          </div>
+                Log Out
+              </button>
+            </div>
+          )}
         </div>
       )}
     </header>
