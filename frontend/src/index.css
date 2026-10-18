@@ -222,6 +222,35 @@
   }
 }
 
+@keyframes lidar-sweep {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes anamorphic-pulse {
+  0%, 100% {
+    opacity: 0.35;
+    transform: scaleX(0.9);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scaleX(1.15);
+  }
+}
+
+@keyframes holographic-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
 .animate-orb-breathe {
   animation: orb-breathe 4.5s ease-in-out infinite;
 }
@@ -247,6 +276,19 @@
 
 .animate-pulse-wave {
   animation: pulse-wave-expand 1.8s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+.animate-lidar-sweep {
+  animation: lidar-sweep 3.6s linear infinite;
+}
+
+.animate-anamorphic {
+  animation: anamorphic-pulse 2.8s ease-in-out infinite;
+}
+
+.animate-shimmer-text {
+  background-size: 200% auto;
+  animation: holographic-shimmer 4s linear infinite;
 }
 
 /* Sleek Apple-Minimalist Dark Map (100% Free, Zero API Keys, Zero Watermarks) */
