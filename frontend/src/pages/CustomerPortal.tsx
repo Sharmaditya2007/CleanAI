@@ -14,7 +14,10 @@ import {
   Upload,
   Loader2,
   Check,
-  LocateFixed
+  LocateFixed,
+  ChevronRight,
+  X,
+  FileText
 } from 'lucide-react';
 import { api } from '../services/api';
 import { Toilet, Complaint } from '../types';
@@ -97,8 +100,7 @@ export const CustomerPortal: React.FC = () => {
       },
       (err) => {
         setGeoLoading(false);
-        setGeoError('Location permission denied or unavailable. Showing central municipal view.');
-        // Default to Connaught Place, New Delhi coordinates
+        setGeoError('Showing central municipal view.');
         setUserCoords({ lat: 28.6315, lon: 77.2167 });
       },
       { timeout: 8000 }
@@ -157,20 +159,20 @@ export const CustomerPortal: React.FC = () => {
   });
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 text-[#F5F5F7]">
       
       {/* Header Banner */}
-      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 card-shadow flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="apple-glass-card rounded-3xl p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-bold border border-emerald-200">
-            <Compass size={14} />
-            <span>Public Civic Discovery</span>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#161616] text-[#2997FF] text-xs font-medium border border-[#262626]">
+            <Compass size={13} />
+            <span>Civic Sanitation Discovery</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
-            Find Clean Public Toilets Nearby
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-[#F5F5F7]">
+            Find Clean Public Toilets
           </h1>
-          <p className="text-xs sm:text-sm text-slate-600 max-w-2xl leading-relaxed">
-            Discover verified restrooms with live municipal cleanliness badges, handicap access, and turn-by-turn directions.
+          <p className="text-xs sm:text-sm text-[#A1A1A6] max-w-2xl leading-relaxed">
+            Verified restrooms with real-time municipal cleanliness badges, wheelchair accessibility, and turn-by-turn navigation.
           </p>
         </div>
 
@@ -179,43 +181,43 @@ export const CustomerPortal: React.FC = () => {
           <button
             onClick={handleRequestLocation}
             disabled={geoLoading}
-            className="px-5 py-3 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-2xl card-shadow flex items-center gap-2 transition-all disabled:opacity-50"
+            className="apple-button-primary px-5 py-2.5 rounded-full text-xs font-semibold flex items-center gap-2 shadow-xs transition-all disabled:opacity-50"
           >
             {geoLoading ? (
               <>
-                <Loader2 size={16} className="animate-spin" />
+                <Loader2 size={14} className="animate-spin" />
                 <span>Locating GPS...</span>
               </>
             ) : (
               <>
-                <LocateFixed size={16} />
-                <span>{userCoords ? 'Update My GPS Location' : 'Use My Current Location'}</span>
+                <LocateFixed size={14} />
+                <span>{userCoords ? 'Update My GPS' : 'Use Current Location'}</span>
               </>
             )}
           </button>
           {userCoords && (
-            <span className="text-[11px] text-emerald-800 font-semibold flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              GPS active ({userCoords.lat.toFixed(4)}, {userCoords.lon.toFixed(4)})
+            <span className="text-[11px] text-[#30D158] font-mono flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#30D158] animate-pulse" />
+              GPS Active ({userCoords.lat.toFixed(4)}, {userCoords.lon.toFixed(4)})
             </span>
           )}
-          {geoError && <p className="text-[11px] text-amber-600">{geoError}</p>}
+          {geoError && <p className="text-[11px] text-[#FF9F0A]">{geoError}</p>}
         </div>
       </div>
 
       {/* Filter and View Controls Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 card-shadow space-y-3">
+      <div className="apple-glass-card p-4 rounded-2xl space-y-3">
         <div className="flex flex-col md:flex-row gap-3 items-center justify-between">
           
           {/* Search Box */}
           <div className="relative w-full md:w-80">
-            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6E6E73]" />
             <input
               type="text"
-              placeholder="Search by facility name, market, metro..."
+              placeholder="Search facility name, market, metro..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
+              className="w-full pl-9 pr-4 py-2 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] placeholder-[#6E6E73] focus:border-[#2997FF] focus:outline-hidden"
             />
           </div>
 
@@ -225,10 +227,10 @@ export const CustomerPortal: React.FC = () => {
               <button
                 key={s}
                 onClick={() => setStatusFilter(s)}
-                className={`text-xs px-3 py-1.5 rounded-lg font-semibold transition-all whitespace-nowrap ${
+                className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all whitespace-nowrap ${
                   statusFilter === s
-                    ? 'bg-slate-900 text-white shadow-xs'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    ? 'bg-[#F5F5F7] text-[#050505] shadow-xs'
+                    : 'bg-[#161616] text-[#A1A1A6] hover:text-[#F5F5F7] hover:bg-[#1F1F1F]'
                 }`}
               >
                 {s === 'all' ? 'All Statuses' : s}
@@ -237,27 +239,27 @@ export const CustomerPortal: React.FC = () => {
           </div>
 
           {/* Toggle Map / List / Both View */}
-          <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
+          <div className="flex items-center bg-[#161616] p-0.5 rounded-full border border-[#262626] text-xs">
             <button
               onClick={() => setViewMode('both')}
-              className={`px-3 py-1 rounded-lg font-bold transition-all ${
-                viewMode === 'both' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600'
+              className={`px-3 py-1 rounded-full font-medium transition-all ${
+                viewMode === 'both' ? 'bg-[#262626] text-[#F5F5F7]' : 'text-[#A1A1A6]'
               }`}
             >
               Split View
             </button>
             <button
               onClick={() => setViewMode('map')}
-              className={`px-3 py-1 rounded-lg font-bold transition-all ${
-                viewMode === 'map' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600'
+              className={`px-3 py-1 rounded-full font-medium transition-all ${
+                viewMode === 'map' ? 'bg-[#262626] text-[#F5F5F7]' : 'text-[#A1A1A6]'
               }`}
             >
               Map Only
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`px-3 py-1 rounded-lg font-bold transition-all ${
-                viewMode === 'list' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600'
+              className={`px-3 py-1 rounded-full font-medium transition-all ${
+                viewMode === 'list' ? 'bg-[#262626] text-[#F5F5F7]' : 'text-[#A1A1A6]'
               }`}
             >
               List Only
@@ -266,23 +268,23 @@ export const CustomerPortal: React.FC = () => {
         </div>
 
         {/* Secondary Facilities Filter */}
-        <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-slate-100 text-xs">
-          <label className="flex items-center gap-1.5 cursor-pointer font-medium text-slate-700">
+        <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-[#1F1F1F] text-xs text-[#A1A1A6]">
+          <label className="flex items-center gap-1.5 cursor-pointer font-medium hover:text-[#F5F5F7]">
             <input
               type="checkbox"
               checked={accessibleOnly}
               onChange={(e) => setAccessibleOnly(e.target.checked)}
-              className="rounded text-emerald-600 focus:ring-emerald-500"
+              className="rounded bg-[#161616] border-[#262626] text-[#2997FF] focus:ring-0"
             />
             <span>♿ Wheelchair Accessible</span>
           </label>
 
-          <div className="flex items-center gap-1">
-            <span className="text-slate-400 font-semibold">Facility:</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[#6E6E73] font-medium">Facility:</span>
             <select
               value={selectedFacility}
               onChange={(e) => setSelectedFacility(e.target.value)}
-              className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs"
+              className="bg-[#161616] border border-[#262626] text-[#F5F5F7] rounded-lg px-2.5 py-1 text-xs focus:outline-hidden"
             >
               <option value="all">Any Facility</option>
               <option value="Running Water">Running Water</option>
@@ -293,8 +295,8 @@ export const CustomerPortal: React.FC = () => {
             </select>
           </div>
 
-          <span className="text-slate-400 ml-auto font-medium">
-            Showing {filteredToilets.length} registered facilities
+          <span className="text-[#6E6E73] ml-auto font-mono text-[11px]">
+            {filteredToilets.length} registered facilities
           </span>
         </div>
       </div>
@@ -317,11 +319,11 @@ export const CustomerPortal: React.FC = () => {
 
         {/* List View */}
         {(viewMode === 'both' || viewMode === 'list') && (
-          <div className={`${viewMode === 'both' ? 'lg:col-span-6 xl:col-span-5' : 'w-full'} space-y-4 max-h-[600px] overflow-y-auto pr-1`}>
+          <div className={`${viewMode === 'both' ? 'lg:col-span-6 xl:col-span-5' : 'w-full'} space-y-3.5 max-h-[600px] overflow-y-auto pr-1`}>
             {filteredToilets.length === 0 ? (
-              <div className="bg-white p-8 rounded-3xl border border-slate-200 text-center text-slate-400 card-shadow">
-                <Compass size={36} className="mx-auto mb-2 opacity-40" />
-                <p className="font-semibold text-sm">No public toilets found matching your filters.</p>
+              <div className="apple-glass-card p-10 rounded-3xl text-center text-[#6E6E73]">
+                <Compass size={36} className="mx-auto mb-2 opacity-30" />
+                <p className="font-semibold text-sm text-[#A1A1A6]">No public toilets found matching filters.</p>
                 <button
                   onClick={() => {
                     setSearchQuery('');
@@ -329,7 +331,7 @@ export const CustomerPortal: React.FC = () => {
                     setAccessibleOnly(false);
                     setSelectedFacility('all');
                   }}
-                  className="mt-3 text-xs font-bold text-emerald-700 hover:underline"
+                  className="mt-3 text-xs font-semibold text-[#2997FF] hover:underline"
                 >
                   Reset all filters
                 </button>
@@ -341,16 +343,16 @@ export const CustomerPortal: React.FC = () => {
                   <div
                     key={toilet.id}
                     onClick={() => setSelectedToilet(toilet)}
-                    className={`p-5 rounded-3xl border transition-all cursor-pointer card-shadow ${
+                    className={`p-5 rounded-2xl border transition-all cursor-pointer ${
                       isSelected
-                        ? 'bg-emerald-50/40 border-emerald-500 ring-2 ring-emerald-500/20'
-                        : 'bg-white border-slate-200 hover:border-slate-300'
+                        ? 'bg-[#161616] border-[#2997FF]/60 shadow-lg'
+                        : 'bg-[#111111] border-[#262626] hover:border-[#333333]'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <h3 className="font-bold text-base text-slate-900">{toilet.name}</h3>
-                        <p className="text-xs text-slate-500 mt-0.5">{toilet.address}, {toilet.locality}</p>
+                        <h3 className="font-semibold text-base text-[#F5F5F7] tracking-tight">{toilet.name}</h3>
+                        <p className="text-xs text-[#A1A1A6] mt-0.5">{toilet.address}, {toilet.locality}</p>
                       </div>
 
                       <StatusBadge
@@ -361,7 +363,7 @@ export const CustomerPortal: React.FC = () => {
                     </div>
 
                     {toilet.distance_km !== undefined && (
-                      <p className="text-xs font-bold text-sky-800 bg-sky-50 px-2 py-0.5 rounded-md inline-block mt-2">
+                      <p className="text-[11px] font-mono text-[#2997FF] bg-[#2997FF]/10 border border-[#2997FF]/20 px-2 py-0.5 rounded-full inline-block mt-2">
                         📍 {toilet.distance_km} km away
                       </p>
                     )}
@@ -369,16 +371,16 @@ export const CustomerPortal: React.FC = () => {
                     {/* Facilities Chips */}
                     <div className="flex flex-wrap gap-1.5 mt-3">
                       {toilet.facilities.map((fac, idx) => (
-                        <span key={idx} className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md text-[11px] font-medium">
+                        <span key={idx} className="bg-[#161616] text-[#A1A1A6] border border-[#262626] px-2 py-0.5 rounded-full text-[11px] font-medium">
                           {fac}
                         </span>
                       ))}
                     </div>
 
                     {/* Operating hours & Actions Footer */}
-                    <div className="flex items-center justify-between border-t border-slate-100 pt-3 mt-3 text-xs">
-                      <span className="text-slate-500 flex items-center gap-1 font-medium">
-                        <Clock size={13} />
+                    <div className="flex items-center justify-between border-t border-[#1F1F1F] pt-3 mt-3 text-xs">
+                      <span className="text-[#6E6E73] flex items-center gap-1 font-mono text-[11px]">
+                        <Clock size={12} />
                         {toilet.opening_hours || '24x7'}
                       </span>
 
@@ -388,9 +390,9 @@ export const CustomerPortal: React.FC = () => {
                           target="_blank"
                           rel="noreferrer"
                           onClick={(e) => e.stopPropagation()}
-                          className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold rounded-lg flex items-center gap-1 transition-colors"
+                          className="px-3 py-1.5 bg-[#161616] hover:bg-[#222222] border border-[#262626] text-[#F5F5F7] font-medium rounded-full flex items-center gap-1 text-[11px] transition-colors"
                         >
-                          <Navigation size={12} />
+                          <Navigation size={11} />
                           <span>Directions</span>
                         </a>
 
@@ -400,7 +402,7 @@ export const CustomerPortal: React.FC = () => {
                             setReportingToilet(toilet);
                             setSubmittedComplaint(null);
                           }}
-                          className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold rounded-lg border border-rose-200 transition-colors"
+                          className="px-3 py-1.5 bg-[#FF453A]/10 hover:bg-[#FF453A]/20 text-[#FF453A] border border-[#FF453A]/25 font-semibold rounded-full text-[11px] transition-colors"
                         >
                           Report Issue
                         </button>
@@ -416,14 +418,14 @@ export const CustomerPortal: React.FC = () => {
       </div>
 
       {/* Citizen Complaint Tracking Lookup Section */}
-      <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 card-shadow space-y-4">
+      <div className="apple-glass-card p-6 sm:p-8 rounded-3xl space-y-4">
         <div>
-          <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
-            <Search size={18} className="text-emerald-700" />
+          <h3 className="font-semibold text-base text-[#F5F5F7] flex items-center gap-2">
+            <Search size={16} className="text-[#2997FF]" />
             <span>Track Citizen Sanitation Report</span>
           </h3>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Check the live investigation and resolution status of an issue filed with your reference number (e.g. CMP-2026-XXXX).
+          <p className="text-xs text-[#A1A1A6] mt-0.5">
+            Check the live investigation and resolution status using your reference code (e.g. CMP-2026-XXXX).
           </p>
         </div>
 
@@ -434,33 +436,33 @@ export const CustomerPortal: React.FC = () => {
             placeholder="Enter reference number (e.g. CMP-2026-9042)"
             value={trackRef}
             onChange={(e) => setTrackRef(e.target.value)}
-            className="flex-1 text-xs p-3 border border-slate-300 rounded-xl font-mono uppercase"
+            className="flex-1 text-xs p-3 bg-[#161616] border border-[#262626] rounded-xl font-mono uppercase text-[#F5F5F7] placeholder-[#6E6E73] focus:border-[#2997FF] focus:outline-hidden"
           />
           <button
             type="submit"
             disabled={trackingLoading}
-            className="px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-xs transition-colors shrink-0 flex items-center justify-center gap-2"
+            className="apple-button-primary px-6 py-3 rounded-xl text-xs font-semibold shrink-0 flex items-center justify-center gap-2"
           >
-            {trackingLoading ? <Loader2 size={16} className="animate-spin" /> : 'Check Status'}
+            {trackingLoading ? <Loader2 size={14} className="animate-spin" /> : 'Check Status'}
           </button>
         </form>
 
-        {trackError && <p className="text-xs text-red-600 font-medium">{trackError}</p>}
+        {trackError && <p className="text-xs text-[#FF453A] font-medium">{trackError}</p>}
 
         {trackedResult && (
-          <div className="p-4 bg-emerald-50/50 rounded-2xl border border-emerald-200 text-xs space-y-2">
+          <div className="p-4 bg-[#161616] rounded-2xl border border-[#262626] text-xs space-y-2">
             <div className="flex items-center justify-between">
-              <span className="font-mono font-bold text-slate-900">{trackedResult.reference_number}</span>
-              <span className="font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+              <span className="font-mono font-bold text-[#2997FF]">{trackedResult.reference_number}</span>
+              <span className="font-semibold px-2.5 py-0.5 rounded-full bg-[#30D158]/10 text-[#30D158] border border-[#30D158]/20">
                 {trackedResult.status}
               </span>
             </div>
-            <p className="font-bold text-slate-800">{trackedResult.toilet_name}</p>
-            <p className="text-slate-600">Category: {trackedResult.category.replace(/_/g, ' ')}</p>
-            <p className="text-slate-600">Report: "{trackedResult.description}"</p>
+            <p className="font-semibold text-[#F5F5F7]">{trackedResult.toilet_name}</p>
+            <p className="text-[#A1A1A6]">Category: {trackedResult.category.replace(/_/g, ' ')}</p>
+            <p className="text-[#A1A1A6]">Report: "{trackedResult.description}"</p>
             {trackedResult.resolution_notes && (
-              <p className="text-emerald-800 font-medium mt-1">
-                Municipal Action: {trackedResult.resolution_notes}
+              <p className="text-[#30D158] font-medium mt-1">
+                Resolution: {trackedResult.resolution_notes}
               </p>
             )}
           </div>
@@ -469,49 +471,51 @@ export const CustomerPortal: React.FC = () => {
 
       {/* Report Issue Modal */}
       {reportingToilet && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-          <div className="w-full max-w-lg bg-white rounded-3xl p-6 sm:p-7 space-y-4 card-shadow">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-2xl">
+          <div className="w-full max-w-lg bg-[#0D0D0D] border border-[#262626] rounded-3xl p-6 sm:p-7 space-y-4 shadow-2xl text-[#F5F5F7]">
             
             {submittedComplaint ? (
               <div className="text-center py-6 space-y-4">
-                <div className="w-14 h-14 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto">
+                <div className="w-14 h-14 bg-[#30D158]/10 border border-[#30D158]/30 text-[#30D158] rounded-full flex items-center justify-center mx-auto">
                   <CheckCircle2 size={32} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900">Complaint Registered!</h3>
-                  <p className="text-xs text-slate-600 mt-1">Your sanitation report has been submitted to municipal authorities.</p>
+                  <h3 className="text-lg font-bold text-[#F5F5F7]">Report Registered</h3>
+                  <p className="text-xs text-[#A1A1A6] mt-1">Your sanitation report has been submitted to municipal authorities.</p>
                 </div>
-                <div className="p-3 bg-slate-100 rounded-xl font-mono text-sm font-bold text-slate-800 inline-block border border-slate-200">
+                <div className="p-3 bg-[#161616] rounded-xl font-mono text-sm font-bold text-[#2997FF] inline-block border border-[#262626]">
                   Ref: {submittedComplaint.reference_number}
                 </div>
-                <p className="text-xs text-slate-500">Save this reference number to track your report's status.</p>
+                <p className="text-xs text-[#6E6E73]">Save this reference number to track resolution status.</p>
                 <button
                   onClick={() => {
                     setReportingToilet(null);
                     setSubmittedComplaint(null);
                   }}
-                  className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl"
+                  className="apple-button-primary px-6 py-2.5 rounded-full text-xs font-semibold"
                 >
-                  Close
+                  Done
                 </button>
               </div>
             ) : (
               <>
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center justify-between border-b border-[#262626] pb-3">
                   <div>
-                    <h3 className="font-bold text-base text-slate-900">Report Cleanliness Problem</h3>
-                    <p className="text-xs text-slate-500 mt-0.5">{reportingToilet.name}</p>
+                    <h3 className="font-semibold text-base text-[#F5F5F7]">Report Cleanliness Concern</h3>
+                    <p className="text-xs text-[#A1A1A6] mt-0.5">{reportingToilet.name}</p>
                   </div>
-                  <button onClick={() => setReportingToilet(null)} className="text-slate-400 hover:text-slate-700">✕</button>
+                  <button onClick={() => setReportingToilet(null)} className="text-[#A1A1A6] hover:text-[#F5F5F7]">
+                    <X size={18} />
+                  </button>
                 </div>
 
                 <form onSubmit={handleReportSubmit} className="space-y-3.5">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Issue Category *</label>
+                    <label className="block text-xs font-medium text-[#A1A1A6] mb-1">Issue Category *</label>
                     <select
                       value={reportCategory}
                       onChange={(e) => setReportCategory(e.target.value)}
-                      className="w-full text-xs p-2.5 border border-slate-300 rounded-xl bg-white"
+                      className="w-full text-xs p-2.5 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7]"
                     >
                       <option value="dirty_toilet">Dirty Toilet / Pan</option>
                       <option value="dirty_floor">Dirty / Slippery Floor</option>
@@ -524,52 +528,52 @@ export const CustomerPortal: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Detailed Description *</label>
+                    <label className="block text-xs font-medium text-[#A1A1A6] mb-1">Detailed Description *</label>
                     <textarea
                       required
                       value={reportDesc}
                       onChange={(e) => setReportDesc(e.target.value)}
-                      placeholder="Describe what you observed (e.g. water leaking on floor, garbage piled in corner)..."
+                      placeholder="Describe the issue..."
                       rows={3}
-                      className="w-full text-xs p-3 border border-slate-300 rounded-xl"
+                      className="w-full text-xs p-3 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7] focus:border-[#2997FF] focus:outline-hidden"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Your Email (Optional for updates)</label>
+                    <label className="block text-xs font-medium text-[#A1A1A6] mb-1">Your Email (Optional for alerts)</label>
                     <input
                       type="email"
                       value={reportEmail}
                       onChange={(e) => setReportEmail(e.target.value)}
                       placeholder="e.g. citizen@gmail.com"
-                      className="w-full text-xs p-2.5 border border-slate-300 rounded-xl"
+                      className="w-full text-xs p-2.5 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7]"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Attach Photo (Optional)</label>
+                    <label className="block text-xs font-medium text-[#A1A1A6] mb-1">Attach Photo (Optional)</label>
                     <input
                       type="file"
                       accept="image/*"
                       onChange={(e) => e.target.files && setReportPhoto(e.target.files[0])}
-                      className="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
+                      className="w-full text-xs text-[#A1A1A6] file:mr-3 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-medium file:bg-[#1A1A1A] file:text-[#F5F5F7] hover:file:bg-[#222222]"
                     />
                   </div>
 
-                  <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                  <div className="flex justify-end gap-2 pt-3 border-t border-[#1F1F1F]">
                     <button
                       type="button"
                       onClick={() => setReportingToilet(null)}
-                      className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+                      className="px-4 py-2 text-xs font-medium text-[#A1A1A6] hover:text-[#F5F5F7] rounded-full"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
                       disabled={isSubmittingReport}
-                      className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-xs flex items-center gap-2"
+                      className="px-5 py-2.5 bg-[#FF453A] hover:bg-[#FF453A]/90 text-white text-xs font-semibold rounded-full shadow-xs flex items-center gap-2"
                     >
-                      {isSubmittingReport ? <Loader2 size={16} className="animate-spin" /> : 'Submit Civic Report'}
+                      {isSubmittingReport ? <Loader2 size={14} className="animate-spin" /> : 'Submit Report'}
                     </button>
                   </div>
                 </form>
@@ -582,3 +586,4 @@ export const CustomerPortal: React.FC = () => {
     </div>
   );
 };
+

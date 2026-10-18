@@ -9,7 +9,9 @@ import {
   Layers,
   FileCode,
   ShieldCheck,
-  Loader2
+  Loader2,
+  RefreshCw,
+  Terminal
 } from 'lucide-react';
 import { api } from '../services/api';
 import { HealthInfo, AIInferenceResult } from '../types';
@@ -51,208 +53,246 @@ export const HealthPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      
-      {/* Header */}
-      <div className="border-b border-slate-200 pb-6 flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="p-2 bg-emerald-100 text-emerald-800 rounded-xl">
-              <Activity size={24} />
-            </span>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
+    <div className="min-h-screen bg-[#050505] text-[#F5F5F7] py-10 selection:bg-[#2997FF]/30">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+        
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-b border-[#262626]/80 pb-8">
+          <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#111111] border border-[#262626] text-[#30D158] text-[11px] font-semibold tracking-wider uppercase mb-3">
+              <Activity size={13} />
+              <span>Real-time Telemetry</span>
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-[#F5F5F7]">
               System & Model Diagnostics
             </h1>
+            <p className="text-sm text-[#86868B] mt-1.5 max-w-2xl leading-relaxed">
+              Verify YOLOv11 neural network weights, PyTorch inference pipeline integrity, and database telemetry.
+            </p>
           </div>
-          <p className="text-xs sm:text-sm text-slate-600 mt-1">
-            Real-time status of the discovered YOLO model, PyTorch inference pipeline, and database persistence.
-          </p>
+
+          <button
+            onClick={loadHealth}
+            className="apple-button-secondary flex items-center gap-2 py-2.5 px-4 self-start sm:self-auto text-xs"
+          >
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+            <span>Refresh Diagnostics</span>
+          </button>
         </div>
 
-        <button
-          onClick={loadHealth}
-          className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 font-semibold border border-slate-300 rounded-xl text-xs card-shadow"
-        >
-          ↻ Refresh Status
-        </button>
-      </div>
-
-      {loading ? (
-        <div className="py-20 text-center text-slate-400">
-          <Loader2 size={32} className="animate-spin mx-auto mb-2" />
-          <p className="text-sm font-semibold">Inspecting system components...</p>
-        </div>
-      ) : health ? (
-        <div className="space-y-6">
-          
-          {/* Main Status Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {loading ? (
+          <div className="py-24 text-center text-[#86868B] space-y-3">
+            <Loader2 size={32} className="animate-spin mx-auto text-[#2997FF]" />
+            <p className="text-sm font-medium">Querying telemetry nodes...</p>
+          </div>
+        ) : health ? (
+          <div className="space-y-8">
             
-            {/* AI Model Card */}
-            <div className="bg-white p-6 rounded-3xl border border-slate-200 card-shadow space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <Cpu className="text-emerald-700" size={22} />
-                  <h3 className="font-bold text-base text-slate-900">AI Model Runtime</h3>
-                </div>
-                <span
-                  className={`text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5 ${
-                    health.model.loaded
-                      ? 'bg-emerald-100 text-emerald-800'
-                      : 'bg-red-100 text-red-800'
-                  }`}
-                >
-                  <span className={`w-2 h-2 rounded-full ${health.model.loaded ? 'bg-emerald-600' : 'bg-red-600'}`} />
-                  {health.model.loaded ? 'Model Loaded & Active' : 'Model Failed to Load'}
-                </span>
-              </div>
-
-              <div className="space-y-2 text-xs">
-                <div className="flex justify-between py-1.5 border-b border-slate-100">
-                  <span className="text-slate-500 font-medium">Framework:</span>
-                  <span className="font-bold text-slate-800">{health.model.framework}</span>
-                </div>
-                <div className="flex justify-between py-1.5 border-b border-slate-100">
-                  <span className="text-slate-500 font-medium">Model File:</span>
-                  <span className="font-mono font-bold text-slate-800">{health.model.filename}</span>
-                </div>
-                <div className="py-1.5 border-b border-slate-100">
-                  <span className="text-slate-500 font-medium block mb-0.5">Absolute Weights Path:</span>
-                  <span className="font-mono text-[11px] text-slate-700 break-all bg-slate-50 p-1.5 rounded-md block border border-slate-200">
-                    {health.model.path}
-                  </span>
-                </div>
-                <div className="flex justify-between py-1.5">
-                  <span className="text-slate-500 font-medium">Trained Classes:</span>
-                  <span className="font-bold text-emerald-700">{health.model.classes_count} Classes Loaded</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Database Card */}
-            <div className="bg-white p-6 rounded-3xl border border-slate-200 card-shadow space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <Database className="text-teal-700" size={22} />
-                  <h3 className="font-bold text-base text-slate-900">Database Engine</h3>
-                </div>
-                <span className="text-xs font-bold px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-600" />
-                  Operational
-                </span>
-              </div>
-
-              <div className="space-y-2 text-xs">
-                <div className="flex justify-between py-1.5 border-b border-slate-100">
-                  <span className="text-slate-500 font-medium">Storage Engine:</span>
-                  <span className="font-bold text-slate-800">{health.database.type}</span>
-                </div>
-                <div className="flex justify-between py-1.5 border-b border-slate-100">
-                  <span className="text-slate-500 font-medium">Database Name:</span>
-                  <span className="font-mono font-bold text-slate-800">{health.database.database_name}</span>
-                </div>
-                <div className="flex justify-between py-1.5 border-b border-slate-100">
-                  <span className="text-slate-500 font-medium">MongoDB Connection:</span>
-                  <span className="font-bold text-slate-800">
-                    {health.database.connected ? 'Active (Atlas/Local)' : 'Local File-Backed Mirror (Auto-reconnect)'}
-                  </span>
-                </div>
-                <div className="flex justify-between py-1.5">
-                  <span className="text-slate-500 font-medium">Platform Version:</span>
-                  <span className="font-bold text-slate-800">v{health.version}</span>
-                </div>
-              </div>
-            </div>
-
-          </div>
-
-          {/* Model Class Labels Grid */}
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 card-shadow space-y-4">
-            <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
-              <Layers className="text-emerald-700" size={18} />
-              <span>Model Class Mapping (Discovered from Weights)</span>
-            </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-              {Object.entries(health.model.classes).map(([id, name]) => {
-                const isClean = name.startsWith('clean_');
-                return (
-                  <div
-                    key={id}
-                    className={`p-2.5 rounded-xl border flex items-center justify-between ${
-                      isClean
-                        ? 'bg-emerald-50/50 border-emerald-200 text-emerald-900'
-                        : 'bg-amber-50/50 border-amber-200 text-amber-900'
+            {/* Main Diagnostics Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              
+              {/* AI Model Runtime Card */}
+              <div className="apple-glass-card rounded-3xl p-7 space-y-5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl bg-[#2997FF]/10 text-[#2997FF]">
+                      <Cpu size={22} />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-base text-[#F5F5F7]">AI Model Runtime</h3>
+                      <p className="text-xs text-[#86868B]">YOLO Computer Vision Engine</p>
+                    </div>
+                  </div>
+                  <span
+                    className={`text-xs font-semibold px-3 py-1 rounded-full border flex items-center gap-2 ${
+                      health.model.loaded
+                        ? 'bg-[#30D158]/10 text-[#30D158] border-[#30D158]/20'
+                        : 'bg-[#FF453A]/10 text-[#FF453A] border-[#FF453A]/20'
                     }`}
                   >
-                    <span className="font-semibold">{name}</span>
-                    <span className="font-mono text-[10px] opacity-60">ID {id}</span>
+                    <span className={`w-2 h-2 rounded-full ${health.model.loaded ? 'bg-[#30D158]' : 'bg-[#FF453A]'}`} />
+                    {health.model.loaded ? 'Active & Healthy' : 'Offline'}
+                  </span>
+                </div>
+
+                <div className="space-y-3 text-xs pt-2">
+                  <div className="flex justify-between py-2 border-b border-[#262626]">
+                    <span className="text-[#86868B]">Inference Framework</span>
+                    <span className="font-semibold text-[#F5F5F7]">{health.model.framework}</span>
                   </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Real Sample Inference Test Trigger */}
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 card-shadow space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
-                  <Sparkles className="text-emerald-700" size={18} />
-                  <span>Real Sample Image Inference Verification</span>
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Loads a real test image from the dataset, runs inference using the model, and validates bounding boxes and confidences.
-                </p>
-              </div>
-
-              <button
-                onClick={handleTestInference}
-                disabled={testingSample}
-                className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-xs flex items-center gap-2 transition-colors shrink-0 disabled:opacity-50"
-              >
-                {testingSample ? (
-                  <>
-                    <Loader2 size={16} className="animate-spin" />
-                    <span>Running Inference...</span>
-                  </>
-                ) : (
-                  <>
-                    <Cpu size={16} />
-                    <span>Run Real Sample Test</span>
-                  </>
-                )}
-              </button>
-            </div>
-
-            {testError && (
-              <p className="text-xs text-red-600 bg-red-50 p-3 rounded-xl border border-red-200">{testError}</p>
-            )}
-
-            {sampleResult && (
-              <div className="p-4 bg-emerald-50/40 rounded-2xl border border-emerald-200 space-y-3">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-bold text-slate-900">
-                    Model: {sampleResult.model_identifier} ({sampleResult.framework})
-                  </span>
-                  <span className="font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full">
-                    {sampleResult.ai_recommendation}
-                  </span>
-                </div>
-                <p className="text-xs text-slate-700">{sampleResult.message}</p>
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {sampleResult.detections.map((d, i) => (
-                    <span key={i} className="text-xs px-2.5 py-1 rounded-lg bg-white border border-slate-200 font-semibold text-slate-800">
-                      {d.class_name}: {(d.confidence * 100).toFixed(0)}% (Box: {d.bbox.width}x{d.bbox.height})
+                  <div className="flex justify-between py-2 border-b border-[#262626]">
+                    <span className="text-[#86868B]">Model Weights File</span>
+                    <span className="font-mono text-[#2997FF]">{health.model.filename}</span>
+                  </div>
+                  <div className="py-2 border-b border-[#262626] space-y-1">
+                    <span className="text-[#86868B] block">Absolute Weights Path</span>
+                    <span className="font-mono text-[11px] text-[#A1A1A6] break-all bg-[#141414] p-2 rounded-lg block border border-[#262626]">
+                      {health.model.path}
                     </span>
-                  ))}
+                  </div>
+                  <div className="flex justify-between py-2">
+                    <span className="text-[#86868B]">Configured Classes</span>
+                    <span className="font-semibold text-[#30D158]">{health.model.classes_count} Classes Registered</span>
+                  </div>
                 </div>
               </div>
-            )}
+
+              {/* Database Telemetry Card */}
+              <div className="apple-glass-card rounded-3xl p-7 space-y-5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl bg-[#30D158]/10 text-[#30D158]">
+                      <Database size={22} />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-base text-[#F5F5F7]">Database Cluster</h3>
+                      <p className="text-xs text-[#86868B]">Persistence & Document Storage</p>
+                    </div>
+                  </div>
+                  <span className="text-xs font-semibold px-3 py-1 rounded-full bg-[#30D158]/10 text-[#30D158] border border-[#30D158]/20 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-[#30D158]" />
+                    Operational
+                  </span>
+                </div>
+
+                <div className="space-y-3 text-xs pt-2">
+                  <div className="flex justify-between py-2 border-b border-[#262626]">
+                    <span className="text-[#86868B]">Storage Engine</span>
+                    <span className="font-semibold text-[#F5F5F7]">{health.database.type}</span>
+                  </div>
+                  <div className="flex justify-between py-2 border-b border-[#262626]">
+                    <span className="text-[#86868B]">Database Name</span>
+                    <span className="font-mono text-[#F5F5F7]">{health.database.database_name}</span>
+                  </div>
+                  <div className="flex justify-between py-2 border-b border-[#262626]">
+                    <span className="text-[#86868B]">Cluster Connectivity</span>
+                    <span className="font-semibold text-[#30D158]">
+                      {health.database.connected ? 'Active (Atlas/Local)' : 'Local File-Backed Mirror (Auto-reconnect)'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between py-2">
+                    <span className="text-[#86868B]">Platform Release</span>
+                    <span className="font-mono text-[#A1A1A6]">v{health.version}</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Model Class Labels Grid */}
+            <div className="apple-glass-card rounded-3xl p-7 space-y-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-base text-[#F5F5F7] flex items-center gap-2.5">
+                    <Layers className="text-[#2997FF]" size={18} />
+                    <span>Neural Network Class Mapping</span>
+                  </h3>
+                  <p className="text-xs text-[#86868B] mt-0.5">
+                    Classes loaded directly from discoverable YOLO weights ({Object.keys(health.model.classes).length} categories).
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+                {Object.entries(health.model.classes).map(([id, name]) => {
+                  const isClean = name.startsWith('clean_');
+                  return (
+                    <div
+                      key={id}
+                      className={`p-3 rounded-xl border flex items-center justify-between transition-colors ${
+                        isClean
+                          ? 'bg-[#30D158]/5 border-[#30D158]/20 text-[#30D158]'
+                          : 'bg-[#FF9F0A]/5 border-[#FF9F0A]/20 text-[#FF9F0A]'
+                      }`}
+                    >
+                      <span className="font-medium text-[11px] truncate">{name}</span>
+                      <span className="font-mono text-[10px] opacity-60 ml-1">#{id}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Live Inference Pipeline Verification */}
+            <div className="apple-glass-card rounded-3xl p-7 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+                <div>
+                  <h3 className="font-semibold text-base text-[#F5F5F7] flex items-center gap-2.5">
+                    <Sparkles className="text-[#2997FF]" size={18} />
+                    <span>Live Sample Inference Verification</span>
+                  </h3>
+                  <p className="text-xs text-[#86868B] mt-1 max-w-xl leading-relaxed">
+                    Loads an image from the real dataset, passes it through the active PyTorch pipeline, and returns live bounding boxes and confidence scores.
+                  </p>
+                </div>
+
+                <button
+                  onClick={handleTestInference}
+                  disabled={testingSample}
+                  className="apple-button-primary px-5 py-3 text-xs font-semibold flex items-center gap-2 shrink-0 disabled:opacity-50"
+                >
+                  {testingSample ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      <span>Executing Neural Forward Pass...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Terminal size={15} />
+                      <span>Execute Live Test</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {testError && (
+                <div className="p-4 bg-[#FF453A]/10 rounded-2xl border border-[#FF453A]/25 text-xs text-[#FF453A]">
+                  {testError}
+                </div>
+              )}
+
+              {sampleResult && (
+                <div className="p-5 bg-[#141414] rounded-2xl border border-[#262626] space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <span className="font-semibold text-[#F5F5F7]">
+                      Model: {sampleResult.model_identifier} ({sampleResult.framework})
+                    </span>
+                    <span className="font-semibold text-[#30D158] bg-[#30D158]/10 border border-[#30D158]/25 px-3 py-1 rounded-full">
+                      Recommendation: {sampleResult.ai_recommendation}
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-[#A1A1A6] leading-relaxed">
+                    {sampleResult.message}
+                  </p>
+
+                  <div className="pt-2">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-[#86868B] block mb-2">
+                      Detected Objects ({sampleResult.detections.length}):
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {sampleResult.detections.map((d, i) => (
+                        <div
+                          key={i}
+                          className="px-3 py-1.5 rounded-xl bg-[#1A1A1A] border border-[#262626] text-xs font-medium text-[#F5F5F7] flex items-center gap-2"
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#2997FF]" />
+                          <span>{d.class_name}</span>
+                          <span className="font-mono text-[#86868B] text-[11px]">
+                            {(d.confidence * 100).toFixed(0)}%
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
           </div>
+        ) : null}
 
-        </div>
-      ) : null}
-
+      </div>
     </div>
   );
 };

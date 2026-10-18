@@ -10,42 +10,42 @@ interface StatusBadgeProps {
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, isStale, size = 'md' }) => {
   const sizeClasses = {
-    sm: 'text-xs px-2 py-0.5 gap-1',
-    md: 'text-xs sm:text-sm px-2.5 py-1 gap-1.5 font-medium',
-    lg: 'text-sm sm:text-base px-3.5 py-1.5 gap-2 font-semibold'
+    sm: 'text-[11px] px-2 py-0.5 gap-1',
+    md: 'text-[12px] px-2.5 py-1 gap-1.5 font-medium',
+    lg: 'text-[13px] px-3.5 py-1.5 gap-2 font-semibold'
   }[size];
 
   const iconSizes = {
-    sm: 12,
-    md: 15,
-    lg: 18
+    sm: 11,
+    md: 13,
+    lg: 15
   }[size];
 
   const getStatusConfig = () => {
     switch (status) {
       case 'Clean':
         return {
-          bg: 'bg-emerald-50 text-emerald-800 border-emerald-200 ring-1 ring-emerald-500/20',
-          icon: <CheckCircle2 size={iconSizes} className="text-emerald-600" />,
+          bg: 'bg-[#30D158]/10 text-[#30D158] border-[#30D158]/25',
+          icon: <CheckCircle2 size={iconSizes} className="text-[#30D158]" />,
           label: 'Clean'
         };
       case 'Needs Cleaning':
         return {
-          bg: 'bg-amber-50 text-amber-900 border-amber-200 ring-1 ring-amber-500/20',
-          icon: <AlertTriangle size={iconSizes} className="text-amber-600" />,
+          bg: 'bg-[#FF9F0A]/10 text-[#FF9F0A] border-[#FF9F0A]/25',
+          icon: <AlertTriangle size={iconSizes} className="text-[#FF9F0A]" />,
           label: 'Needs Cleaning'
         };
       case 'Under Maintenance':
         return {
-          bg: 'bg-slate-100 text-slate-800 border-slate-300 ring-1 ring-slate-400/20',
-          icon: <Wrench size={iconSizes} className="text-slate-600" />,
+          bg: 'bg-[#8E8E93]/10 text-[#8E8E93] border-[#8E8E93]/25',
+          icon: <Wrench size={iconSizes} className="text-[#8E8E93]" />,
           label: 'Under Maintenance'
         };
       case 'Verification Pending':
       default:
         return {
-          bg: 'bg-sky-50 text-sky-800 border-sky-200 ring-1 ring-sky-500/20',
-          icon: <Clock size={iconSizes} className="text-sky-600" />,
+          bg: 'bg-[#2997FF]/10 text-[#2997FF] border-[#2997FF]/25',
+          icon: <Clock size={iconSizes} className="text-[#2997FF]" />,
           label: 'Verification Pending'
         };
     }
@@ -55,17 +55,21 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, isStale, size 
 
   return (
     <div className="inline-flex items-center gap-1.5 flex-wrap">
-      <span className={`inline-flex items-center rounded-full border ${config.bg} ${sizeClasses} shadow-xs`}>
+      <span className={`inline-flex items-center rounded-full border backdrop-blur-md tracking-tight ${config.bg} ${sizeClasses}`}>
         {config.icon}
         <span>{config.label}</span>
       </span>
 
       {isStale && (
-        <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 text-amber-800 text-xs px-2 py-0.5 gap-1 font-medium" title="Last confirmed inspection was over 3 days ago">
-          <AlertCircle size={12} className="text-amber-600" />
+        <span
+          className="inline-flex items-center rounded-full border border-[#FF9F0A]/30 bg-[#FF9F0A]/10 text-[#FF9F0A] text-[11px] px-2 py-0.5 gap-1 font-medium tracking-tight"
+          title="Last confirmed inspection was over 3 days ago"
+        >
+          <AlertCircle size={11} className="text-[#FF9F0A]" />
           <span>Outdated Verification</span>
         </span>
       )}
     </div>
   );
 };
+
