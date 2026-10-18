@@ -569,20 +569,27 @@ export const MunicipalPortal: React.FC = () => {
               <span>Most Common Sanitation Complaints</span>
             </h3>
             <div className="space-y-3 pt-2">
-              {analytics.frequent_issue_categories.map((cat, i) => (
-                <div key={i} className="space-y-1">
-                  <div className="flex justify-between text-xs font-medium">
-                    <span className="text-[#F5F5F7]">{cat.category}</span>
-                    <span className="text-[#6E6E73] font-mono">{cat.count} reports</span>
-                  </div>
-                  <div className="w-full h-2 bg-[#161616] rounded-full overflow-hidden border border-[#262626]">
-                    <div
-                      className="bg-gradient-to-r from-[#2997FF] to-[#0077ED] h-full rounded-full"
-                      style={{ width: `${Math.min(100, cat.count * 30)}%` }}
-                    />
-                  </div>
+              {analytics.frequent_issue_categories.length === 0 ? (
+                <div className="py-8 text-center text-[#86868B]">
+                  <p className="text-xs font-medium text-[#F5F5F7]">No citizen complaints recorded yet</p>
+                  <p className="text-[11px] text-[#6E6E73] mt-1">Issue category distributions will appear here as citizens submit reports.</p>
                 </div>
-              ))}
+              ) : (
+                analytics.frequent_issue_categories.map((cat, i) => (
+                  <div key={i} className="space-y-1">
+                    <div className="flex justify-between text-xs font-medium">
+                      <span className="text-[#F5F5F7]">{cat.category}</span>
+                      <span className="text-[#6E6E73] font-mono">{cat.count} reports</span>
+                    </div>
+                    <div className="w-full h-2 bg-[#161616] rounded-full overflow-hidden border border-[#262626]">
+                      <div
+                        className="bg-gradient-to-r from-[#2997FF] to-[#0077ED] h-full rounded-full"
+                        style={{ width: `${Math.min(100, cat.count * 30)}%` }}
+                      />
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>

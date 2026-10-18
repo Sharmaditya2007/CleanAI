@@ -38,6 +38,7 @@ export const LandingPage: React.FC = () => {
     needsCleaning: 0,
     rate: 0
   });
+  const [modelClassesCount, setModelClassesCount] = useState<number | null>(null);
   const [sampleResult, setSampleResult] = useState<AIInferenceResult | null>(null);
   const [testingAi, setTestingAi] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
@@ -45,19 +46,30 @@ export const LandingPage: React.FC = () => {
   useEffect(() => {
     async function loadData() {
       try {
-        const list = await api.getToilets();
-        setToilets(list);
-        if (list.length > 0) setSelectedToilet(list[0]);
-        
-        const clean = list.filter(t => t.verified_status === 'Clean').length;
-        const needsClean = list.filter(t => t.verified_status === 'Needs Cleaning').length;
-        const total = list.length;
-        setStats({
-          total,
-          clean,
-          needsCleaning: needsClean,
-          rate: total > 0 ? Math.round((clean / total) * 100) : 0
-        });
+        const [list, health] = await Promise.allSettled([
+          api.getToilets(),
+          api.getHealth()
+        ]);
+
+        if (list.status === 'fulfilled') {
+          const tList = list.value;
+          setToilets(tList);
+          if (tList.length > 0) setSelectedToilet(tList[0]);
+          
+          const clean = tList.filter(t => t.verified_status === 'Clean').length;
+          const needsClean = tList.filter(t => t.verified_status === 'Needs Cleaning').length;
+          const total = tList.length;
+          setStats({
+            total,
+            clean,
+            needsCleaning: needsClean,
+            rate: total > 0 ? Math.round((clean / total) * 100) : 0
+          });
+        }
+
+        if (health.status === 'fulfilled' && health.value?.model?.classes_count) {
+          setModelClassesCount(health.value.model.classes_count);
+        }
       } catch (e) {
         console.warn('Could not load landing stats:', e);
       }
@@ -135,24 +147,26 @@ export const LandingPage: React.FC = () => {
             {/* Key Metrics Strip (Real Backend Values) */}
             <div className="pt-6 grid grid-cols-3 gap-4 max-w-md mx-auto lg:mx-0 border-t border-[#1C1C1E]">
               <div>
-                <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-[#F5F5F7]">{stats.total || 6}</p>
+                <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-[#F5F5F7]">{stats.total}</p>
                 <p className="text-[11px] text-[#86868B] mt-0.5 uppercase tracking-wider font-mono">Facilities</p>
               </div>
               <div>
-                <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-[#30D158]">{stats.rate || 80}%</p>
+                <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-[#30D158]">{stats.rate}%</p>
                 <p className="text-[11px] text-[#86868B] mt-0.5 uppercase tracking-wider font-mono">Clean Index</p>
               </div>
               <div>
-                <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-[#2997FF]">82ms</p>
-                <p className="text-[11px] text-[#86868B] mt-0.5 uppercase tracking-wider font-mono">AI Latency</p>
+                <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-[#2997FF]">
+                  {modelClassesCount !== null ? modelClassesCount : '16'}
+                </p>
+                <p className="text-[11px] text-[#86868B] mt-0.5 uppercase tracking-wider font-mono">Vision Classes</p>
               </div>
             </div>
 
           </div>
 
-          {/* Hero Right: Interactive 3D Composition */}
+          {/* Hero Right: Interactive 3D Composition with Real Data */}
           <div className="lg:col-span-5 flex items-center justify-center relative">
-            <ThreeDHeroVisual />
+            <ThreeDHeroVisual primaryToilet={selectedToilet} classesCount={modelClassesCount} />
           </div>
 
         </div>
@@ -424,27 +438,35 @@ export const LandingPage: React.FC = () => {
               </div>
 
               <div className="space-y-2.5 max-h-[330px] overflow-y-auto pr-1">
-                {toilets.slice(0, 5).map((t) => (
-                  <div
-                    key={t.id}
-                    onClick={() => setSelectedToilet(t)}
-                    className={`p-3.5 rounded-2xl border text-left cursor-pointer transition-all ${
-                      selectedToilet?.id === t.id
-                        ? 'bg-[#181818] border-[#2997FF] shadow-lg'
-                        : 'bg-[#121212] border-[#262626] hover:border-[#383838]'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-xs font-semibold text-[#F5F5F7] truncate">{t.name}</p>
-                      <StatusBadge status={t.verified_status} size="sm" />
-                    </div>
-                    <p className="text-[11px] text-[#86868B] mt-1">{t.locality}, {t.city}</p>
-                    <div className="flex items-center gap-3 text-[10px] text-[#6E6E73] font-mono mt-1.5">
-                      <span>Hours: {t.opening_hours || '24x7'}</span>
-                      {t.accessibility && <span className="text-[#30D158]">Handicap Access</span>}
-                    </div>
+                {toilets.length === 0 ? (
+                  <div className="py-12 text-center text-[#86868B] space-y-2">
+                    <MapPin size={24} className="mx-auto text-[#6E6E73] opacity-40" />
+                    <p className="text-xs font-semibold text-[#F5F5F7]">No toilets registered yet</p>
+                    <p className="text-[11px] text-[#86868B]">Registered facilities will appear here with live verified status.</p>
                   </div>
-                ))}
+                ) : (
+                  toilets.slice(0, 5).map((t) => (
+                    <div
+                      key={t.id}
+                      onClick={() => setSelectedToilet(t)}
+                      className={`p-3.5 rounded-2xl border text-left cursor-pointer transition-all ${
+                        selectedToilet?.id === t.id
+                          ? 'bg-[#181818] border-[#2997FF] shadow-lg'
+                          : 'bg-[#121212] border-[#262626] hover:border-[#383838]'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-semibold text-[#F5F5F7] truncate">{t.name}</p>
+                        <StatusBadge status={t.verified_status} size="sm" />
+                      </div>
+                      <p className="text-[11px] text-[#86868B] mt-1">{t.locality}, {t.city}</p>
+                      <div className="flex items-center gap-3 text-[10px] text-[#6E6E73] font-mono mt-1.5">
+                        <span>Hours: {t.opening_hours || '24x7'}</span>
+                        {t.accessibility && <span className="text-[#30D158]">Handicap Access</span>}
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 

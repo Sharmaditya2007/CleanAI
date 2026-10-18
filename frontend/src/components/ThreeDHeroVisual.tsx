@@ -1,7 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Sparkles, MapPin, ShieldCheck, Cpu, Activity, Compass } from 'lucide-react';
+import { Sparkles, MapPin, ShieldCheck, Cpu } from 'lucide-react';
+import { Toilet } from '../types';
 
-export const ThreeDHeroVisual: React.FC = () => {
+interface ThreeDHeroVisualProps {
+  primaryToilet?: Toilet | null;
+  classesCount?: number | null;
+}
+
+export const ThreeDHeroVisual: React.FC<ThreeDHeroVisualProps> = ({
+  primaryToilet,
+  classesCount
+}) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [mousePos, setMousePos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
@@ -9,14 +18,12 @@ export const ThreeDHeroVisual: React.FC = () => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!containerRef.current) return;
       const rect = containerRef.current.getBoundingClientRect();
-      // Only track if cursor is reasonably near or inside
       const clientX = e.clientX;
       const clientY = e.clientY;
 
       const normX = (clientX - (rect.left + rect.width / 2)) / (window.innerWidth / 2);
       const normY = (clientY - (rect.top + rect.height / 2)) / (window.innerHeight / 2);
 
-      // Clamp between -1 and 1
       const clampedX = Math.max(-1, Math.min(1, normX));
       const clampedY = Math.max(-1, Math.min(1, normY));
 
@@ -27,7 +34,6 @@ export const ThreeDHeroVisual: React.FC = () => {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
-  // Compute 3D stage rotation angles
   const rotX = -mousePos.y * 14;
   const rotY = mousePos.x * 18;
 
@@ -68,9 +74,9 @@ export const ThreeDHeroVisual: React.FC = () => {
             boxShadow: '0 20px 50px rgba(0,0,0,0.9), inset 0 0 40px rgba(41,151,255,0.1)'
           }}
         >
-          {/* Neon grid lines */}
+          {/* Grid lines */}
           <div className="absolute inset-0 bg-[linear-gradient(to_right,#262626_1px,transparent_1px),linear-gradient(to_bottom,#262626_1px,transparent_1px)] bg-[size:28px_28px] opacity-40" />
-          {/* Pulsing City Node Beacons on Floor */}
+          {/* Spatial node beacons */}
           <div className="absolute top-[35%] left-[25%] w-2 h-2 rounded-full bg-[#30D158] shadow-[0_0_10px_#30D158] animate-ping" />
           <div className="absolute top-[60%] right-[30%] w-2 h-2 rounded-full bg-[#2997FF] shadow-[0_0_10px_#2997FF] animate-ping" />
         </div>
@@ -82,7 +88,6 @@ export const ThreeDHeroVisual: React.FC = () => {
             transformStyle: 'preserve-3d'
           }}
         >
-          {/* Orbiting Luminous Node */}
           <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-white shadow-[0_0_10px_#ffffff]" />
         </div>
 
@@ -136,9 +141,9 @@ export const ThreeDHeroVisual: React.FC = () => {
           </div>
         </div>
 
-        {/* Layer 4: Floating 3D Telemetry Panels (Staggered Z-Depths) */}
+        {/* Layer 4: Real Dynamic Telemetry Panels */}
         
-        {/* Panel 1: Live AI Vision Telemetry (Top-Left, translateZ = 70px) */}
+        {/* Panel 1: Live AI Vision Telemetry (Top-Left, translateZ = 75px) */}
         <div
           className="absolute -top-2 left-2 sm:left-4 z-20 p-3 sm:p-3.5 rounded-2xl bg-[#0D0D0D]/85 backdrop-blur-xl border border-[#262626] shadow-2xl transition-transform duration-300 pointer-events-none flex items-center gap-3"
           style={{
@@ -154,24 +159,30 @@ export const ThreeDHeroVisual: React.FC = () => {
               <span className="w-1.5 h-1.5 rounded-full bg-[#30D158] animate-pulse" />
               <p className="text-[10px] font-mono uppercase tracking-wider text-[#86868B]">YOLO Vision Core</p>
             </div>
-            <p className="text-xs font-semibold text-[#F5F5F7]">98.4% Precision Rate</p>
+            <p className="text-xs font-semibold text-[#F5F5F7]">
+              {classesCount ? `${classesCount} Trained Classes` : 'Inference Pipeline Active'}
+            </p>
           </div>
         </div>
 
         {/* Panel 2: Verified Sanitation Status (Bottom-Right, translateZ = 95px) */}
         <div
-          className="absolute bottom-10 right-2 sm:right-4 z-20 p-3 sm:p-3.5 rounded-2xl bg-[#0D0D0D]/85 backdrop-blur-xl border border-[#262626] shadow-2xl transition-transform duration-300 pointer-events-none flex items-center gap-3"
+          className="absolute bottom-10 right-2 sm:right-4 z-20 p-3 sm:p-3.5 rounded-2xl bg-[#0D0D0D]/85 backdrop-blur-xl border border-[#262626] shadow-2xl transition-transform duration-300 pointer-events-none flex items-center gap-3 max-w-[210px]"
           style={{
             transform: `translateZ(95px) rotateY(${-rotY * 0.5}deg)`,
             boxShadow: '0 20px 40px rgba(0,0,0,0.8), 0 0 1px 1px rgba(48,209,88,0.15)'
           }}
         >
-          <div className="w-8 h-8 rounded-xl bg-[#30D158]/10 text-[#30D158] flex items-center justify-center border border-[#30D158]/20">
+          <div className="w-8 h-8 rounded-xl bg-[#30D158]/10 text-[#30D158] flex items-center justify-center border border-[#30D158]/20 shrink-0">
             <ShieldCheck size={16} />
           </div>
-          <div className="text-left">
-            <p className="text-[10px] font-mono uppercase tracking-wider text-[#30D158]">Verified Clean</p>
-            <p className="text-xs font-semibold text-[#F5F5F7]">Municipal Officer Sign-off</p>
+          <div className="text-left overflow-hidden">
+            <p className="text-[10px] font-mono uppercase tracking-wider text-[#30D158]">
+              {primaryToilet ? primaryToilet.verified_status : 'Sanitation Grid'}
+            </p>
+            <p className="text-xs font-semibold text-[#F5F5F7] truncate">
+              {primaryToilet ? primaryToilet.name : 'Real-time Telemetry'}
+            </p>
           </div>
         </div>
 
@@ -183,7 +194,11 @@ export const ThreeDHeroVisual: React.FC = () => {
           }}
         >
           <MapPin size={12} className="text-[#2997FF]" />
-          <span>28.6315° N, 77.2167° E</span>
+          <span>
+            {primaryToilet
+              ? `${primaryToilet.latitude.toFixed(4)}° N, ${primaryToilet.longitude.toFixed(4)}° E`
+              : 'Delhi Spatial Network'}
+          </span>
         </div>
 
         {/* Floating 3D Depth Markers */}

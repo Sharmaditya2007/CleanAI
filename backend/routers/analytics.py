@@ -73,14 +73,8 @@ async def get_municipal_analytics(
     recent_trend = list(days_map.values())
 
     # Frequent issue categories from complaints
-    cat_counter = Counter(c.get("category", "other") for c in complaints)
+    cat_counter = Counter(c.get("category", "other") for c in complaints if c.get("category"))
     frequent_issues = [{"category": k.replace("_", " ").title(), "count": v} for k, v in cat_counter.most_common(6)]
-    if not frequent_issues:
-        frequent_issues = [
-            {"category": "Dirty Floor", "count": 2},
-            {"category": "Missing Water", "count": 1},
-            {"category": "Dirty Toilet", "count": 1}
-        ]
 
     # Locality breakdown
     loc_counter = Counter(t.get("locality", "Central") for t in toilets)
