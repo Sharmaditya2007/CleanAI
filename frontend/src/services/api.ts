@@ -10,17 +10,10 @@ import {
   Notification
 } from '../types';
 
-import { cloudFallback } from './cloudFallback';
-
 const ENV_API_URL = import.meta.env.VITE_API_URL as string | undefined;
 export const API_BASE = ENV_API_URL
   ? (ENV_API_URL.endsWith('/api') ? ENV_API_URL : `${ENV_API_URL.replace(/\/$/, '')}/api`)
   : '/api';
-
-export const isCloudDeployment = typeof window !== 'undefined' && (
-  window.location.hostname.includes('vercel.app') ||
-  window.location.hostname.includes('.app')
-);
 
 export function getMediaUrl(path?: string | null): string {
   if (!path) return '';
@@ -67,33 +60,18 @@ async function handleResponse<T>(res: Response): Promise<T> {
 export const api = {
   // Health
   getHealth: async (): Promise<HealthInfo> => {
-    try {
-      const res = await fetch(`${API_BASE}/health`);
-      return await handleResponse<HealthInfo>(res);
-    } catch (err) {
-      if (isCloudDeployment || !ENV_API_URL) {
-        return cloudFallback.getHealth();
-      }
-      throw err;
-    }
+    const res = await fetch(`${API_BASE}/health`);
+    return handleResponse<HealthInfo>(res);
   },
 
   // Auth
   login: async (email: string, password: string): Promise<{ access_token: string; user: User }> => {
-    try {
-      const res = await fetch(`${API_BASE}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-      return await handleResponse(res);
-    } catch (err: any) {
-      if (isCloudDeployment || !ENV_API_URL) {
-        console.warn('Backend API unreachable on cloud host. Falling back to seamless Cloud Session.');
-        return cloudFallback.login(email, password);
-      }
-      throw err;
-    }
+    const res = await fetch(`${API_BASE}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    return handleResponse(res);
   },
 
   register: async (data: {
@@ -104,34 +82,19 @@ export const api = {
     phone?: string;
     organization?: string;
   }): Promise<{ access_token: string; user: User }> => {
-    try {
-      const res = await fetch(`${API_BASE}/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-      return await handleResponse(res);
-    } catch (err: any) {
-      if (isCloudDeployment || !ENV_API_URL) {
-        console.warn('Backend API unreachable on cloud host. Falling back to seamless Cloud Registration.');
-        return cloudFallback.register(data);
-      }
-      throw err;
-    }
+    const res = await fetch(`${API_BASE}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    return handleResponse(res);
   },
 
   getMe: async (): Promise<User> => {
-    try {
-      const res = await fetch(`${API_BASE}/auth/me`, {
-        headers: getHeaders()
-      });
-      return await handleResponse<User>(res);
-    } catch (err) {
-      if (isCloudDeployment || !ENV_API_URL) {
-        return cloudFallback.getCurrentUser();
-      }
-      throw err;
-    }
+    const res = await fetch(`${API_BASE}/auth/me`, {
+      headers: getHeaders()
+    });
+    return handleResponse<User>(res);
   },
 
   // Toilets
@@ -145,40 +108,25 @@ export const api = {
     max_distance_km?: number;
     owner_only?: boolean;
   }): Promise<Toilet[]> => {
-    try {
-      const query = new URLSearchParams();
-      if (params) {
-        Object.entries(params).forEach(([k, v]) => {
-          if (v !== undefined && v !== null && v !== '') {
-            query.append(k, String(v));
-          }
-        });
-      }
-      const res = await fetch(`${API_BASE}/toilets?${query.toString()}`, {
-        headers: getHeaders()
+    const query = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([k, v]) => {
+        if (v !== undefined && v !== null && v !== '') {
+          query.append(k, String(v));
+        }
       });
-      return await handleResponse<Toilet[]>(res);
-    } catch (err) {
-      if (isCloudDeployment || !ENV_API_URL) {
-        return cloudFallback.getToilets();
-      }
-      throw err;
     }
+    const res = await fetch(`${API_BASE}/toilets?${query.toString()}`, {
+      headers: getHeaders()
+    });
+    return handleResponse<Toilet[]>(res);
   },
 
   getToilet: async (id: string): Promise<Toilet> => {
-    try {
-      const res = await fetch(`${API_BASE}/toilets/${id}`, {
-        headers: getHeaders()
-      });
-      return await handleResponse<Toilet>(res);
-    } catch (err) {
-      if (isCloudDeployment || !ENV_API_URL) {
-        const found = cloudFallback.getToilets().find(t => t.id === id);
-        if (found) return found;
-      }
-      throw err;
-    }
+    const res = await fetch(`${API_BASE}/toilets/${id}`, {
+      headers: getHeaders()
+    });
+    return handleResponse<Toilet>(res);
   },
 
   registerToilet: async (toiletData: Partial<Toilet>): Promise<Toilet> => {
@@ -268,7 +216,11 @@ export const api = {
     return handleResponse<CleaningTask[]>(res);
   },
 
-  createTask: async (data: { toilet_id: string; priority: string; notes?: string }): Promise<CleaningTask> => {
+  createTask: async (data: {
+    toilet_id: string;
+    priority?: string;
+    notes?: string;
+  }): Promise<CleaningTask> => {
     const res = await fetch(`${API_BASE}/tasks`, {
       method: 'POST',
       headers: getHeaders(),
@@ -278,8 +230,8 @@ export const api = {
   },
 
   markTaskInProgress: async (taskId: string): Promise<CleaningTask> => {
-    const res = await fetch(`${API_BASE}/tasks/${taskId}/in-progress`, {
-      method: 'POST',
+    const res = await fetch(`${API_BASE}/tasks/${taskId}/claim`, {
+      method: 'PUT',
       headers: getHeaders()
     });
     return handleResponse<CleaningTask>(res);
@@ -295,7 +247,7 @@ export const api = {
     if (afterPhoto) {
       formData.append('after_photo', afterPhoto);
     }
-    const res = await fetch(`${API_BASE}/tasks/${taskId}/report-completion`, {
+    const res = await fetch(`${API_BASE}/tasks/${taskId}/complete`, {
       method: 'POST',
       headers: getHeaders(true),
       body: formData
@@ -355,17 +307,10 @@ export const api = {
 
   // Analytics
   getAnalytics: async (): Promise<MunicipalAnalytics> => {
-    try {
-      const res = await fetch(`${API_BASE}/analytics`, {
-        headers: getHeaders()
-      });
-      return await handleResponse<MunicipalAnalytics>(res);
-    } catch (err) {
-      if (isCloudDeployment || !ENV_API_URL) {
-        return cloudFallback.getAnalytics();
-      }
-      throw err;
-    }
+    const res = await fetch(`${API_BASE}/analytics`, {
+      headers: getHeaders()
+    });
+    return handleResponse<MunicipalAnalytics>(res);
   },
 
   // Notifications
@@ -375,7 +320,7 @@ export const api = {
         headers: getHeaders()
       });
       return await handleResponse<Notification[]>(res);
-    } catch (err) {
+    } catch {
       return [];
     }
   },

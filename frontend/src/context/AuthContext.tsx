@@ -26,14 +26,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const profile = await api.getMe();
           setUser(profile);
         } catch (e) {
-          console.warn('Token expired or invalid', e);
+          console.warn('Session expired or invalid token', e);
           localStorage.removeItem('clean_ai_token');
           setToken(null);
           setUser(null);
         }
-      } else if (!localStorage.getItem('clean_ai_logged_out')) {
-        // Default to demo officer on initial load for seamless evaluation
-        await quickSwitchRole('officer');
+      } else {
+        setUser(null);
       }
       setLoading(false);
     }
@@ -41,7 +40,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [token]);
 
   const login = async (email: string, password: string) => {
-    localStorage.removeItem('clean_ai_logged_out');
     const res = await api.login(email, password);
     localStorage.setItem('clean_ai_token', res.access_token);
     setToken(res.access_token);
@@ -49,7 +47,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const register = async (data: any) => {
-    localStorage.removeItem('clean_ai_logged_out');
     const res = await api.register(data);
     localStorage.setItem('clean_ai_token', res.access_token);
     setToken(res.access_token);
@@ -58,31 +55,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     localStorage.removeItem('clean_ai_token');
-    localStorage.setItem('clean_ai_logged_out', 'true');
     setToken(null);
     setUser(null);
   };
 
-  const quickSwitchRole = async (role: UserRole) => {
-    let email = 'officer@cleanai.gov';
-    let password = 'Officer@123';
-    if (role === 'owner') {
-      email = 'owner@cleanai.com';
-      password = 'Owner@123';
-    } else if (role === 'citizen') {
-      email = 'citizen@cleanai.org';
-      password = 'Citizen@123';
-    }
-
-    try {
-      localStorage.removeItem('clean_ai_logged_out');
-      const res = await api.login(email, password);
-      localStorage.setItem('clean_ai_token', res.access_token);
-      setToken(res.access_token);
-      setUser(res.user);
-    } catch (e) {
-      console.error('Quick switch failed:', e);
-    }
+  // Deprecated helper kept for backwards type compatibility
+  const quickSwitchRole = async (_role: UserRole) => {
+    // No-op in real production
   };
 
   return (

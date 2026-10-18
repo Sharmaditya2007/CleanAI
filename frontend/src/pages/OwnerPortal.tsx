@@ -99,18 +99,6 @@ export const OwnerPortal: React.FC = () => {
     }
   };
 
-  const handleQuickOwnerLogin = async () => {
-    setAuthLoading(true);
-    setAuthError(null);
-    try {
-      await login('owner@cleanai.com', 'Owner@123');
-    } catch (err: any) {
-      setAuthError(err.message || 'Quick login failed.');
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!regForm.name || !regForm.address || !regForm.locality) {
@@ -279,24 +267,6 @@ export const OwnerPortal: React.FC = () => {
               )}
             </button>
           </form>
-
-          <div className="relative my-4">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-[#262626]"></div>
-            </div>
-            <div className="relative flex justify-center text-xs">
-              <span className="px-2 bg-[#0D0D0D] text-[#6E6E73]">Quick Access</span>
-            </div>
-          </div>
-
-          <button
-            onClick={handleQuickOwnerLogin}
-            disabled={authLoading}
-            className="w-full py-2.5 rounded-xl text-xs font-semibold bg-[#161616] hover:bg-[#202020] text-[#F5F5F7] border border-[#262626] transition-all flex items-center justify-center gap-2 cursor-pointer"
-          >
-            <Building2 size={14} className="text-[#2997FF]" />
-            <span>One-Click Owner Demo Login (owner@cleanai.com)</span>
-          </button>
         </div>
       </div>
     );
