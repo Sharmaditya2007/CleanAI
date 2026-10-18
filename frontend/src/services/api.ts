@@ -6,7 +6,8 @@ import {
   Complaint,
   CleaningTask,
   MunicipalAnalytics,
-  HealthInfo
+  HealthInfo,
+  Notification
 } from '../types';
 
 const ENV_API_URL = import.meta.env.VITE_API_URL as string | undefined;
@@ -298,5 +299,29 @@ export const api = {
       headers: getHeaders()
     });
     return handleResponse<MunicipalAnalytics>(res);
+  },
+
+  // Notifications
+  getNotifications: async (): Promise<Notification[]> => {
+    const res = await fetch(`${API_BASE}/notifications`, {
+      headers: getHeaders()
+    });
+    return handleResponse<Notification[]>(res);
+  },
+
+  markNotificationRead: async (notificationId: string): Promise<any> => {
+    const res = await fetch(`${API_BASE}/notifications/${notificationId}/read`, {
+      method: 'PUT',
+      headers: getHeaders()
+    });
+    return handleResponse<any>(res);
+  },
+
+  markAllNotificationsRead: async (): Promise<any> => {
+    const res = await fetch(`${API_BASE}/notifications/mark-all-read`, {
+      method: 'POST',
+      headers: getHeaders()
+    });
+    return handleResponse<any>(res);
   }
 };

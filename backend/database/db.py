@@ -40,6 +40,7 @@ class DatabaseManager:
             "inspections": [],
             "complaints": [],
             "cleaning_tasks": [],
+            "notifications": [],
             "audit_logs": []
         }
         self._load_fallback_store()
@@ -93,6 +94,7 @@ class DatabaseManager:
             await self.db.inspections.create_index("toilet_id")
             await self.db.complaints.create_index("reference_number", unique=True)
             await self.db.cleaning_tasks.create_index("toilet_id")
+            await self.db.notifications.create_index("user_id")
         except Exception as e:
             logger.warning(f"Index creation warning: {e}")
 

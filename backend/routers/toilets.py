@@ -8,6 +8,7 @@ from config import settings
 from database.db import db_manager
 from models.schemas import ToiletCreate, ToiletUpdate, ToiletResponse
 from routers.auth import get_current_user, require_auth, require_roles
+from routers.notifications import dispatch_notification
 
 router = APIRouter(prefix="/toilets", tags=["Toilets"])
 
@@ -160,6 +161,15 @@ async def register_toilet(
         "timestamp": now
     })
 
+    if not is_officer:
+        await dispatch_notification(
+            title="Facility Awaiting Approval",
+            message=f"New facility '{toilet_in.name}' in {toilet_in.locality} submitted by {current_user['full_name']}.",
+            notif_type="toilet_registration",
+            target_role="officer",
+            link="/municipal"
+        )
+
     return format_toilet_response(new_toilet)
 
 @router.put("/{toilet_id}", response_model=ToiletResponse)
@@ -219,6 +229,16 @@ async def approve_toilet_registration(
         "timestamp": now
     })
 
+    if toilet.get("owner_id"):
+        await dispatch_notification(
+            title="Facility Approved by Municipality",
+            message=f"Your facility '{toilet.get('name')}' has been officially verified and approved for public listing.",
+            notif_type="toilet_decision",
+            user_id=toilet.get("owner_id"),
+            target_role="owner",
+            link="/owner"
+        )
+
     return format_toilet_response(toilet)
 
 @router.post("/{toilet_id}/reject", response_model=ToiletResponse)
@@ -254,5 +274,15 @@ async def reject_toilet_registration(
         "details": f"Officer rejected toilet '{toilet.get('name')}'. Reason: {reason}",
         "timestamp": now
     })
+
+    if toilet.get("owner_id"):
+        await dispatch_notification(
+            title="Facility Registration Rejected",
+            message=f"Facility '{toilet.get('name')}' rejected. Reason: {reason}",
+            notif_type="toilet_decision",
+            user_id=toilet.get("owner_id"),
+            target_role="owner",
+            link="/owner"
+        )
 
     return format_toilet_response(toilet)

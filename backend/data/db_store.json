@@ -61,13 +61,13 @@
       "registration_status": "Approved",
       "rejection_reason": null,
       "verified_status": "Verification Pending",
-      "last_inspected_at": "2026-10-18T14:55:16.435760",
-      "last_cleaned_at": "2026-10-18T14:55:16.494746",
+      "last_inspected_at": "2026-10-18T15:30:50.029186",
+      "last_cleaned_at": "2026-10-18T15:30:50.096288",
       "is_stale": false,
       "rating": 4.6,
       "total_complaints": 0,
       "created_at": "2026-09-28T09:35:54.719935",
-      "updated_at": "2026-10-18T14:55:16.499129"
+      "updated_at": "2026-10-18T15:30:50.099771"
     },
     {
       "id": "tlt_002",
@@ -99,9 +99,9 @@
       "last_cleaned_at": "2026-10-18T02:35:54.719935",
       "is_stale": false,
       "rating": 3.4,
-      "total_complaints": 9,
+      "total_complaints": 10,
       "created_at": "2026-10-03T09:35:54.719935",
-      "updated_at": "2026-10-18T14:55:16.524940"
+      "updated_at": "2026-10-18T15:30:50.130666"
     },
     {
       "id": "tlt_003",
@@ -131,9 +131,9 @@
       "last_cleaned_at": "2026-10-18T03:35:54.719935",
       "is_stale": false,
       "rating": 4.1,
-      "total_complaints": 0,
+      "total_complaints": 1,
       "created_at": "2026-10-08T09:35:54.719935",
-      "updated_at": "2026-10-18T04:35:54.719935"
+      "updated_at": "2026-10-18T15:33:23.767796"
     },
     {
       "id": "tlt_004",
@@ -448,6 +448,37 @@
       "total_complaints": 0,
       "created_at": "2026-10-18T14:55:16.391166",
       "updated_at": "2026-10-18T14:55:16.411771"
+    },
+    {
+      "id": "tlt_8aa710bf",
+      "name": "Kashmere Gate Metro Intermodal Toilet",
+      "address": "Interstate Bus Terminal Concourse",
+      "city": "Delhi",
+      "locality": "Kashmere Gate",
+      "latitude": 28.6675,
+      "longitude": 77.2285,
+      "description": "Transit hub public restroom with high capacity.",
+      "facilities": [
+        "Running Water",
+        "Washbasin",
+        "Western WC",
+        "Urinals"
+      ],
+      "opening_hours": "24x7",
+      "accessibility": true,
+      "access_type": "public",
+      "contact_number": "+91-11-23861122",
+      "owner_id": "usr_owner_01",
+      "owner_name": "Suresh Patel (Facility Contractor)",
+      "registration_status": "Approved",
+      "rejection_reason": null,
+      "verified_status": "Verification Pending",
+      "last_inspected_at": null,
+      "last_cleaned_at": null,
+      "rating": 4.5,
+      "total_complaints": 0,
+      "created_at": "2026-10-18T15:30:49.987242",
+      "updated_at": "2026-10-18T15:30:50.004053"
     }
   ],
   "inspections": [
@@ -576,6 +607,24 @@
       "inspector_name": "Rajesh Kumar (Municipal Officer)",
       "inspection_status": "Confirmed",
       "created_at": "2026-10-18T14:55:16.435760"
+    },
+    {
+      "id": "insp_63dad2880f",
+      "toilet_id": "tlt_001",
+      "toilet_name": "Connaught Place Block B Public Convenience",
+      "image_url": "/api/uploads/sample_inspect.jpg",
+      "model_identifier": "YOLO11n-CleanAI",
+      "ai_raw_output": {
+        "model_identifier": "YOLO11n-CleanAI"
+      },
+      "ai_recommendation": "Clean",
+      "officer_decision": "Needs Cleaning",
+      "is_override": true,
+      "override_reason": "Water puddle noted on north corner floor by officer visual check.",
+      "inspector_id": "usr_officer_01",
+      "inspector_name": "Rajesh Kumar (Municipal Officer)",
+      "inspection_status": "Confirmed",
+      "created_at": "2026-10-18T15:30:50.029186"
     }
   ],
   "complaints": [
@@ -698,6 +747,36 @@
       "resolution_notes": null,
       "created_at": "2026-10-18T14:55:16.521516",
       "updated_at": "2026-10-18T14:55:16.521516"
+    },
+    {
+      "id": "cmp_18b3a1c4b5",
+      "reference_number": "CMP-2026-3700",
+      "toilet_id": "tlt_002",
+      "toilet_name": "Rajiv Chowk Metro Station Gate 2 Toilet",
+      "user_id": "usr_citizen_01",
+      "reporter_email": "citizen@cleanai.org",
+      "category": "dirty_floor",
+      "description": "Floor has persistent muddy footprints near basin area.",
+      "photo_url": null,
+      "status": "Received",
+      "resolution_notes": null,
+      "created_at": "2026-10-18T15:30:50.125507",
+      "updated_at": "2026-10-18T15:30:50.125507"
+    },
+    {
+      "id": "cmp_77ac04010e",
+      "reference_number": "CMP-2026-7489",
+      "toilet_id": "tlt_003",
+      "toilet_name": "Janpath Central Market Public Facility",
+      "user_id": "usr_officer_01",
+      "reporter_email": "officer@cleanai.gov",
+      "category": "missing_water",
+      "description": "Water tap leaking near washbasin 2",
+      "photo_url": null,
+      "status": "Received",
+      "resolution_notes": null,
+      "created_at": "2026-10-18T15:33:23.746517",
+      "updated_at": "2026-10-18T15:33:23.746517"
     }
   ],
   "cleaning_tasks": [
@@ -962,6 +1041,134 @@
       "verified_at": null,
       "created_at": "2026-10-18T14:55:16.466921",
       "updated_at": "2026-10-18T14:55:16.494771"
+    },
+    {
+      "id": "tsk_e6bd1402",
+      "toilet_id": "tlt_001",
+      "toilet_name": "Connaught Place Block B Public Convenience",
+      "assigned_to_owner_id": "usr_owner_01",
+      "assigned_to_owner_name": "Suresh Patel",
+      "assigned_by_id": "usr_officer_01",
+      "assigned_by_name": "Rajesh Kumar (Municipal Officer)",
+      "status": "Pending",
+      "priority": "High",
+      "notes": "Inspection alert: Flagged as Needs Cleaning on 2026-10-18.",
+      "completion_notes": null,
+      "after_photo_url": null,
+      "claimed_at": null,
+      "verified_at": null,
+      "created_at": "2026-10-18T15:30:50.029186"
+    },
+    {
+      "id": "tsk_cda78bee",
+      "toilet_id": "tlt_001",
+      "toilet_name": "Connaught Place Block B Public Convenience",
+      "assigned_to_owner_id": "usr_owner_01",
+      "assigned_to_owner_name": "Suresh Patel",
+      "assigned_by_id": "usr_officer_01",
+      "assigned_by_name": "Rajesh Kumar (Municipal Officer)",
+      "status": "Cleaning Reported",
+      "priority": "High",
+      "notes": "Thorough sanitization required.",
+      "completion_notes": "Floor thoroughly mopped and disinfectant applied.",
+      "after_photo_url": null,
+      "claimed_at": "2026-10-18T15:30:50.096288",
+      "verified_at": null,
+      "created_at": "2026-10-18T15:30:50.060994",
+      "updated_at": "2026-10-18T15:30:50.096318"
+    }
+  ],
+  "notifications": [
+    {
+      "id": "ntf_c205538ecc",
+      "user_id": null,
+      "target_role": "officer",
+      "title": "Facility Awaiting Approval",
+      "message": "New facility 'Kashmere Gate Metro Intermodal Toilet' in Kashmere Gate submitted by Suresh Patel (Facility Contractor).",
+      "type": "toilet_registration",
+      "link": "/municipal",
+      "is_read": true,
+      "created_at": "2026-10-18T15:30:49.994345",
+      "updated_at": "2026-10-18T15:30:50.197037"
+    },
+    {
+      "id": "ntf_1364cb28c7",
+      "user_id": "usr_owner_01",
+      "target_role": "owner",
+      "title": "Facility Approved by Municipality",
+      "message": "Your facility 'Kashmere Gate Metro Intermodal Toilet' has been officially verified and approved for public listing.",
+      "type": "toilet_decision",
+      "link": "/owner",
+      "is_read": false,
+      "created_at": "2026-10-18T15:30:50.010969"
+    },
+    {
+      "id": "ntf_3a182a4ddf",
+      "user_id": "usr_owner_01",
+      "target_role": "owner",
+      "title": "New Cleaning Order (High Priority)",
+      "message": "Task dispatched for 'Connaught Place Block B Public Convenience': Thorough sanitization required.",
+      "type": "task",
+      "link": "/owner",
+      "is_read": false,
+      "created_at": "2026-10-18T15:30:50.070323"
+    },
+    {
+      "id": "ntf_595b86d940",
+      "user_id": null,
+      "target_role": "officer",
+      "title": "Cleaning Completed \u2014 Review Needed",
+      "message": "Contractor submitted completion for 'Connaught Place Block B Public Convenience'. Ready for inspection.",
+      "type": "cleaning_reported",
+      "link": "/municipal",
+      "is_read": true,
+      "created_at": "2026-10-18T15:30:50.107976",
+      "updated_at": "2026-10-18T15:30:50.203533"
+    },
+    {
+      "id": "ntf_1886241d6c",
+      "user_id": null,
+      "target_role": "officer",
+      "title": "Citizen Report: Dirty Floor",
+      "message": "Ref CMP-2026-3700 for 'Rajiv Chowk Metro Station Gate 2 Toilet': Floor has persistent muddy footprints near basin area.",
+      "type": "complaint",
+      "link": "/municipal",
+      "is_read": true,
+      "created_at": "2026-10-18T15:30:50.139816",
+      "updated_at": "2026-10-18T15:30:50.210723"
+    },
+    {
+      "id": "ntf_7620631632",
+      "user_id": "usr_owner_01",
+      "target_role": "owner",
+      "title": "Issue Reported: Rajiv Chowk Metro Station Gate 2 Toilet",
+      "message": "Citizen reported: Floor has persistent muddy footprints near basin area.",
+      "type": "complaint",
+      "link": "/owner",
+      "is_read": false,
+      "created_at": "2026-10-18T15:30:50.143820"
+    },
+    {
+      "id": "ntf_ac074a03ef",
+      "user_id": null,
+      "target_role": "officer",
+      "title": "Citizen Report: Missing Water",
+      "message": "Ref CMP-2026-7489 for 'Janpath Central Market Public Facility': Water tap leaking near washbasin 2",
+      "type": "complaint",
+      "link": "/municipal",
+      "is_read": false,
+      "created_at": "2026-10-18T15:33:23.785491"
+    },
+    {
+      "id": "ntf_16f5c0ece9",
+      "user_id": "usr_owner_01",
+      "target_role": "owner",
+      "title": "Issue Reported: Janpath Central Market Public Facility",
+      "message": "Citizen reported: Water tap leaking near washbasin 2",
+      "type": "complaint",
+      "link": "/owner",
+      "is_read": false,
+      "created_at": "2026-10-18T15:33:23.794777"
     }
   ],
   "audit_logs": [
@@ -1384,6 +1591,76 @@
       "user_email": "citizen@cleanai.org",
       "details": "Complaint filed (dirty_floor) for toilet 'Rajiv Chowk Metro Station Gate 2 Toilet'. Ref: CMP-2026-7649",
       "timestamp": "2026-10-18T14:55:16.521516"
+    },
+    {
+      "id": "aud_28df2c13",
+      "action": "toilet_registration",
+      "entity_type": "toilet",
+      "entity_id": "tlt_8aa710bf",
+      "user_id": "usr_owner_01",
+      "user_email": "owner@cleanai.com",
+      "details": "Registered toilet 'Kashmere Gate Metro Intermodal Toilet' with status 'Pending Approval'.",
+      "timestamp": "2026-10-18T15:30:49.987242"
+    },
+    {
+      "id": "aud_c9910de6",
+      "action": "toilet_approval",
+      "entity_type": "toilet",
+      "entity_id": "tlt_8aa710bf",
+      "user_id": "usr_officer_01",
+      "user_email": "officer@cleanai.gov",
+      "details": "Officer approved registration for toilet 'Kashmere Gate Metro Intermodal Toilet'.",
+      "timestamp": "2026-10-18T15:30:50.003417"
+    },
+    {
+      "id": "aud_5cc2b5cb",
+      "action": "inspection_confirmation",
+      "entity_type": "inspection",
+      "entity_id": "insp_63dad2880f",
+      "user_id": "usr_officer_01",
+      "user_email": "officer@cleanai.gov",
+      "details": "Officer confirmed inspection for toilet 'Connaught Place Block B Public Convenience'. Decision: Needs Cleaning. Override: True",
+      "timestamp": "2026-10-18T15:30:50.029186"
+    },
+    {
+      "id": "aud_fac86d5f",
+      "action": "task_created",
+      "entity_type": "task",
+      "entity_id": "tsk_cda78bee",
+      "user_id": "usr_officer_01",
+      "user_email": "officer@cleanai.gov",
+      "details": "Officer assigned cleaning task for toilet 'Connaught Place Block B Public Convenience' to owner Suresh Patel.",
+      "timestamp": "2026-10-18T15:30:50.060994"
+    },
+    {
+      "id": "aud_28876fe5",
+      "action": "cleaning_completion_reported",
+      "entity_type": "task",
+      "entity_id": "tsk_cda78bee",
+      "user_id": "usr_owner_01",
+      "user_email": "owner@cleanai.com",
+      "details": "Owner reported cleaning complete with notes: 'Floor thoroughly mopped and disinfectant applied.'. Public status set to Verification Pending.",
+      "timestamp": "2026-10-18T15:30:50.096288"
+    },
+    {
+      "id": "aud_45349479",
+      "action": "complaint_submitted",
+      "entity_type": "complaint",
+      "entity_id": "cmp_18b3a1c4b5",
+      "user_id": "usr_citizen_01",
+      "user_email": "citizen@cleanai.org",
+      "details": "Complaint filed (dirty_floor) for toilet 'Rajiv Chowk Metro Station Gate 2 Toilet'. Ref: CMP-2026-3700",
+      "timestamp": "2026-10-18T15:30:50.125507"
+    },
+    {
+      "id": "aud_cd5d89c5",
+      "action": "complaint_submitted",
+      "entity_type": "complaint",
+      "entity_id": "cmp_77ac04010e",
+      "user_id": "usr_officer_01",
+      "user_email": "officer@cleanai.gov",
+      "details": "Complaint filed (missing_water) for toilet 'Janpath Central Market Public Facility'. Ref: CMP-2026-7489",
+      "timestamp": "2026-10-18T15:33:23.746517"
     }
   ]
 }

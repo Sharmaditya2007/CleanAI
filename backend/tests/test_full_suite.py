@@ -238,5 +238,21 @@ class CleanAIFullSuiteTests(unittest.TestCase):
         self.assertIn("recent_inspections_trend", data)
         self.assertIn("frequent_issue_categories", data)
 
+    # --- 7. Notification System Tests ---
+
+    def test_13_notifications_lifecycle(self):
+        """Test notifications fetching and read-status management."""
+        # Officer notifications
+        resp = self.client.get("/api/notifications", headers=self.officer_headers)
+        self.assertEqual(resp.status_code, 200)
+        notifs = resp.json()
+        self.assertIsInstance(notifs, list)
+
+        # Mark all read
+        mark_all = self.client.post("/api/notifications/mark-all-read", headers=self.officer_headers)
+        self.assertEqual(mark_all.status_code, 200)
+        self.assertEqual(mark_all.json()["status"], "success")
+
 if __name__ == "__main__":
     unittest.main()
+

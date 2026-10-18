@@ -205,3 +205,16 @@ class MunicipalAnalytics(BaseModel):
     recent_inspections_trend: List[Dict[str, Any]]
     frequent_issue_categories: List[Dict[str, Any]]
     locality_breakdown: List[Dict[str, Any]]
+
+# Notification Schema
+class NotificationResponse(BaseModel):
+    id: str
+    user_id: Optional[str] = None
+    target_role: Optional[str] = None
+    title: str
+    message: str
+    type: str
+    link: Optional[str] = None
+    is_read: bool = False
+    created_at: datetime
+

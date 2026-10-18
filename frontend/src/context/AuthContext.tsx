@@ -27,10 +27,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(profile);
         } catch (e) {
           console.warn('Token expired or invalid', e);
-          logout();
+          localStorage.removeItem('clean_ai_token');
+          setToken(null);
+          setUser(null);
         }
-      } else {
-        // Default to demo officer for seamless immediate evaluation
+      } else if (!localStorage.getItem('clean_ai_logged_out')) {
+        // Default to demo officer on initial load for seamless evaluation
         await quickSwitchRole('officer');
       }
       setLoading(false);
@@ -39,6 +41,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [token]);
 
   const login = async (email: string, password: string) => {
+    localStorage.removeItem('clean_ai_logged_out');
     const res = await api.login(email, password);
     localStorage.setItem('clean_ai_token', res.access_token);
     setToken(res.access_token);
@@ -46,6 +49,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const register = async (data: any) => {
+    localStorage.removeItem('clean_ai_logged_out');
     const res = await api.register(data);
     localStorage.setItem('clean_ai_token', res.access_token);
     setToken(res.access_token);
@@ -54,6 +58,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     localStorage.removeItem('clean_ai_token');
+    localStorage.setItem('clean_ai_logged_out', 'true');
     setToken(null);
     setUser(null);
   };
@@ -70,6 +75,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
+      localStorage.removeItem('clean_ai_logged_out');
       const res = await api.login(email, password);
       localStorage.setItem('clean_ai_token', res.access_token);
       setToken(res.access_token);

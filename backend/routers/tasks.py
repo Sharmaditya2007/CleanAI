@@ -7,6 +7,7 @@ from config import settings
 from database.db import db_manager
 from models.schemas import TaskCreate, TaskResponse
 from routers.auth import get_current_user, require_auth, require_roles
+from routers.notifications import dispatch_notification
 
 router = APIRouter(prefix="/tasks", tags=["Cleaning Tasks"])
 
@@ -52,6 +53,17 @@ async def create_cleaning_task(
         "details": f"Officer assigned cleaning task for toilet '{toilet.get('name')}' to owner {toilet.get('owner_name')}.",
         "timestamp": now
     })
+
+    # Dispatch notification to facility owner
+    if toilet.get("owner_id"):
+        await dispatch_notification(
+            title=f"New Cleaning Order ({task_in.priority} Priority)",
+            message=f"Task dispatched for '{toilet.get('name')}': {task_in.notes or 'Sanitation remediation needed.'}",
+            notif_type="task",
+            user_id=toilet.get("owner_id"),
+            target_role="owner",
+            link="/owner"
+        )
 
     return TaskResponse(
         id=task_id,
@@ -208,6 +220,15 @@ async def report_cleaning_completion(
         "details": f"Owner reported cleaning complete with notes: '{completion_notes}'. Public status set to Verification Pending.",
         "timestamp": now
     })
+
+    # Dispatch notification to municipal officers
+    await dispatch_notification(
+        title="Cleaning Completed — Review Needed",
+        message=f"Contractor submitted completion for '{task.get('toilet_name')}'. Ready for inspection.",
+        notif_type="cleaning_reported",
+        target_role="officer",
+        link="/municipal"
+    )
 
     return TaskResponse(
         id=task["id"],

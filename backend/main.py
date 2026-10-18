@@ -8,7 +8,7 @@ from pathlib import Path
 from config import settings
 from database.db import db_manager
 from ai.inference import model_service
-from routers import auth, toilets, inspections, complaints, tasks, analytics
+from routers import auth, toilets, inspections, complaints, tasks, analytics, notifications
 
 # Configure logging
 logging.basicConfig(
@@ -60,6 +60,7 @@ app.include_router(inspections.router, prefix=settings.API_V1_STR)
 app.include_router(complaints.router, prefix=settings.API_V1_STR)
 app.include_router(tasks.router, prefix=settings.API_V1_STR)
 app.include_router(analytics.router, prefix=settings.API_V1_STR)
+app.include_router(notifications.router, prefix=settings.API_V1_STR)
 
 @app.get("/api/health", tags=["Health"])
 async def health_check():

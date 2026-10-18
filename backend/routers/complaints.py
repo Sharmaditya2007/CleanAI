@@ -8,6 +8,7 @@ from config import settings
 from database.db import db_manager
 from models.schemas import ComplaintResponse
 from routers.auth import get_current_user, require_auth, require_roles
+from routers.notifications import dispatch_notification
 
 router = APIRouter(prefix="/complaints", tags=["Complaints"])
 
@@ -79,6 +80,26 @@ async def submit_complaint(
         "details": f"Complaint filed ({category}) for toilet '{toilet.get('name')}'. Ref: {ref_num}",
         "timestamp": now
     })
+
+    # Dispatch notification to officers
+    await dispatch_notification(
+        title=f"Citizen Report: {category.replace('_', ' ').title()}",
+        message=f"Ref {ref_num} for '{toilet.get('name')}': {description[:80]}",
+        notif_type="complaint",
+        target_role="officer",
+        link="/municipal"
+    )
+
+    # Dispatch notification to owner
+    if toilet.get("owner_id"):
+        await dispatch_notification(
+            title=f"Issue Reported: {toilet.get('name')}",
+            message=f"Citizen reported: {description[:80]}",
+            notif_type="complaint",
+            user_id=toilet.get("owner_id"),
+            target_role="owner",
+            link="/owner"
+        )
 
     return ComplaintResponse(
         id=complaint_id,
