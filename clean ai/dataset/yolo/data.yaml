@@ -1,0 +1,25 @@
+
+path: "C:/Users/anupr/OneDrive/Desktop/clean ai/dataset/yolo"
+
+train: train/images
+val: valid/images
+test: test/images
+
+nc: 16
+names:
+  0: clean_basin
+  1: clean_floor
+  2: clean_indian
+  3: clean_urinal
+  4: clean_western
+  5: damage
+  6: dirty_basin
+  7: dirty_floor
+  8: dirty_indian
+  9: dirty_urinal
+  10: dirty_western
+  11: garbage
+  12: partial_dirty_floor
+  13: partial_dirty_indian
+  14: partial_dirty_urinal
+  15: partial_dirty_western

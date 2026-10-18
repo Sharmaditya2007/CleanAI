@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: clean-ai-backend
+    env: python
+    buildCommand: "pip install --no-cache-dir -r backend/requirements.txt"
+    startCommand: "cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: MONGODB_URI
+        sync: false
+      - key: MONGODB_DB_NAME
+        value: clean_ai_database
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CONFIDENCE_THRESHOLD
+        value: 0.25
+      - key: MODEL_IMAGE_SIZE
+        value: 320
