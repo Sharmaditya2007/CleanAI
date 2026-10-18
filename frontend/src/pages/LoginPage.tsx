@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, ShieldCheck, Building2, User, Lock, Mail, ArrowRight, Loader2 } from 'lucide-react';
+import { Sparkles, ShieldCheck, Building2, User, Lock, Mail, ArrowRight, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types';
 import { api } from '../services/api';
@@ -17,6 +17,19 @@ export const LoginPage: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [serverStatus, setServerStatus] = useState<'checking' | 'online' | 'offline'>('checking');
+
+  useEffect(() => {
+    let mounted = true;
+    api.getHealth()
+      .then(() => {
+        if (mounted) setServerStatus('online');
+      })
+      .catch(() => {
+        if (mounted) setServerStatus('offline');
+      });
+    return () => { mounted = false; };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,6 +116,41 @@ export const LoginPage: React.FC = () => {
           <p className="text-xs text-[#86868B] max-w-xs mx-auto">
             AI-powered sanitation intelligence for modern public spaces.
           </p>
+
+          {/* Real-time Server Connectivity Badge */}
+          <div className="flex items-center justify-center pt-1">
+            {serverStatus === 'online' && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#30D158]/10 text-[#30D158] text-[10px] font-semibold border border-[#30D158]/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#30D158] animate-pulse" />
+                Backend API Online (Port 8000)
+              </span>
+            )}
+            {serverStatus === 'offline' && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FF453A]/10 text-[#FF453A] text-[10px] font-semibold border border-[#FF453A]/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#FF453A]" />
+                Backend Offline / Unreachable
+              </span>
+            )}
+            {serverStatus === 'checking' && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1A1A1A] text-[#86868B] text-[10px] font-semibold border border-[#262626]">
+                <Loader2 size={10} className="animate-spin text-[#2997FF]" />
+                Checking API connection...
+              </span>
+            )}
+          </div>
+
+          {serverStatus === 'offline' && (
+            <div className="p-3 bg-[#FF453A]/10 border border-[#FF453A]/25 rounded-2xl text-[11px] text-[#FF453A] text-left space-y-1">
+              <div className="font-semibold flex items-center gap-1.5">
+                <AlertCircle size={13} />
+                <span>Backend server is not answering</span>
+              </div>
+              <p className="text-[#A1A1A6] text-[10px] leading-relaxed">
+                • <strong>Local:</strong> Double-click <code className="text-[#F5F5F7] bg-[#161616] px-1 py-0.5 rounded">start_backend.bat</code> to launch FastAPI on port 8000.<br />
+                • <strong>Vercel:</strong> Add <code className="text-[#F5F5F7] bg-[#161616] px-1 py-0.5 rounded">VITE_API_URL</code> pointing to your deployed backend (e.g., Render) in Vercel settings.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Quick Demo Credentials */}
