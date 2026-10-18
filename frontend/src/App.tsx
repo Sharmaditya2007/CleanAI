@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
@@ -8,12 +8,18 @@ import { MunicipalPortal } from './pages/MunicipalPortal';
 import { OwnerPortal } from './pages/OwnerPortal';
 import { HealthPage } from './pages/HealthPage';
 import { LoginPage } from './pages/LoginPage';
+import { CleanAIPreloader } from './components/CleanAIPreloader';
 import { Sparkles, Shield, Cpu } from 'lucide-react';
 
 export const App: React.FC = () => {
+  const [isPreloaderActive, setIsPreloaderActive] = useState(true);
+
   return (
     <AuthProvider>
       <Router>
+        {isPreloaderActive && (
+          <CleanAIPreloader onComplete={() => setIsPreloaderActive(false)} />
+        )}
         <div className="min-h-screen flex flex-col bg-[#050505] text-[#F5F5F7] selection:bg-[#2997FF]/30 selection:text-white">
           <Navbar />
           <main className="flex-1">

@@ -154,3 +154,66 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #3a3a3c;
 }
+
+/* Premium Apple-style Preloader Keyframes */
+@keyframes preloader-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes preloader-spin-reverse {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+
+@keyframes preloader-pulse-glow {
+  0%, 100% {
+    opacity: 0.35;
+    transform: scale(0.96);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes preloader-beam-sweep {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes preloader-particle {
+  0%, 100% {
+    opacity: 0.2;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.4);
+    filter: drop-shadow(0 0 6px #2997FF);
+  }
+}
+
+.animate-preloader-spin {
+  animation: preloader-spin 12s linear infinite;
+  transform-origin: center;
+}
+
+.animate-preloader-spin-fast {
+  animation: preloader-spin 6s linear infinite;
+  transform-origin: center;
+}
+
+.animate-preloader-spin-reverse {
+  animation: preloader-spin-reverse 10s linear infinite;
+  transform-origin: center;
+}
+
+.animate-preloader-beam {
+  animation: preloader-beam-sweep 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  transform-origin: center;
+}
+
+.animate-preloader-glow {
+  animation: preloader-pulse-glow 3s ease-in-out infinite;
+}
