@@ -18,6 +18,7 @@ import {
 import { api } from '../services/api';
 import { Toilet, CleaningTask, AIInferenceResult } from '../types';
 import { StatusBadge } from '../components/StatusBadge';
+import { ThreeDCard } from '../components/ThreeDCard';
 import { useAuth } from '../context/AuthContext';
 
 export const OwnerPortal: React.FC = () => {

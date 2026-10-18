@@ -23,6 +23,7 @@ import { api } from '../services/api';
 import { Toilet, Complaint } from '../types';
 import { StatusBadge } from '../components/StatusBadge';
 import { LeafletMap } from '../components/LeafletMap';
+import { ThreeDCard } from '../components/ThreeDCard';
 
 export const CustomerPortal: React.FC = () => {
   const [toilets, setToilets] = useState<Toilet[]>([]);
@@ -418,56 +419,58 @@ export const CustomerPortal: React.FC = () => {
       </div>
 
       {/* Citizen Complaint Tracking Lookup Section */}
-      <div className="apple-glass-card p-6 sm:p-8 rounded-3xl space-y-4">
-        <div>
-          <h3 className="font-semibold text-base text-[#F5F5F7] flex items-center gap-2">
-            <Search size={16} className="text-[#2997FF]" />
-            <span>Track Citizen Sanitation Report</span>
-          </h3>
-          <p className="text-xs text-[#A1A1A6] mt-0.5">
-            Check the live investigation and resolution status using your reference code (e.g. CMP-2026-XXXX).
-          </p>
-        </div>
-
-        <form onSubmit={handleTrackSubmit} className="flex flex-col sm:flex-row gap-3">
-          <input
-            type="text"
-            required
-            placeholder="Enter reference number (e.g. CMP-2026-9042)"
-            value={trackRef}
-            onChange={(e) => setTrackRef(e.target.value)}
-            className="flex-1 text-xs p-3 bg-[#161616] border border-[#262626] rounded-xl font-mono uppercase text-[#F5F5F7] placeholder-[#6E6E73] focus:border-[#2997FF] focus:outline-hidden"
-          />
-          <button
-            type="submit"
-            disabled={trackingLoading}
-            className="apple-button-primary px-6 py-3 rounded-xl text-xs font-semibold shrink-0 flex items-center justify-center gap-2"
-          >
-            {trackingLoading ? <Loader2 size={14} className="animate-spin" /> : 'Check Status'}
-          </button>
-        </form>
-
-        {trackError && <p className="text-xs text-[#FF453A] font-medium">{trackError}</p>}
-
-        {trackedResult && (
-          <div className="p-4 bg-[#161616] rounded-2xl border border-[#262626] text-xs space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="font-mono font-bold text-[#2997FF]">{trackedResult.reference_number}</span>
-              <span className="font-semibold px-2.5 py-0.5 rounded-full bg-[#30D158]/10 text-[#30D158] border border-[#30D158]/20">
-                {trackedResult.status}
-              </span>
-            </div>
-            <p className="font-semibold text-[#F5F5F7]">{trackedResult.toilet_name}</p>
-            <p className="text-[#A1A1A6]">Category: {trackedResult.category.replace(/_/g, ' ')}</p>
-            <p className="text-[#A1A1A6]">Report: "{trackedResult.description}"</p>
-            {trackedResult.resolution_notes && (
-              <p className="text-[#30D158] font-medium mt-1">
-                Resolution: {trackedResult.resolution_notes}
-              </p>
-            )}
+      <ThreeDCard maxTilt={5} scaleOnHover={1.01}>
+        <div className="apple-glass-card p-6 sm:p-8 rounded-3xl space-y-4">
+          <div>
+            <h3 className="font-semibold text-base text-[#F5F5F7] flex items-center gap-2">
+              <Search size={16} className="text-[#2997FF]" />
+              <span>Track Citizen Sanitation Report</span>
+            </h3>
+            <p className="text-xs text-[#A1A1A6] mt-0.5">
+              Check the live investigation and resolution status using your reference code (e.g. CMP-2026-XXXX).
+            </p>
           </div>
-        )}
-      </div>
+
+          <form onSubmit={handleTrackSubmit} className="flex flex-col sm:flex-row gap-3">
+            <input
+              type="text"
+              required
+              placeholder="Enter reference number (e.g. CMP-2026-9042)"
+              value={trackRef}
+              onChange={(e) => setTrackRef(e.target.value)}
+              className="flex-1 text-xs p-3 bg-[#161616] border border-[#262626] rounded-xl font-mono uppercase text-[#F5F5F7] placeholder-[#6E6E73] focus:border-[#2997FF] focus:outline-hidden"
+            />
+            <button
+              type="submit"
+              disabled={trackingLoading}
+              className="apple-button-primary px-6 py-3 rounded-xl text-xs font-semibold shrink-0 flex items-center justify-center gap-2"
+            >
+              {trackingLoading ? <Loader2 size={14} className="animate-spin" /> : 'Check Status'}
+            </button>
+          </form>
+
+          {trackError && <p className="text-xs text-[#FF453A] font-medium">{trackError}</p>}
+
+          {trackedResult && (
+            <div className="p-4 bg-[#161616] rounded-2xl border border-[#262626] text-xs space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-mono font-bold text-[#2997FF]">{trackedResult.reference_number}</span>
+                <span className="font-semibold px-2.5 py-0.5 rounded-full bg-[#30D158]/10 text-[#30D158] border border-[#30D158]/20">
+                  {trackedResult.status}
+                </span>
+              </div>
+              <p className="font-semibold text-[#F5F5F7]">{trackedResult.toilet_name}</p>
+              <p className="text-[#A1A1A6]">Category: {trackedResult.category.replace(/_/g, ' ')}</p>
+              <p className="text-[#A1A1A6]">Report: "{trackedResult.description}"</p>
+              {trackedResult.resolution_notes && (
+                <p className="text-[#30D158] font-medium mt-1">
+                  Resolution: {trackedResult.resolution_notes}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      </ThreeDCard>
 
       {/* Report Issue Modal */}
       {reportingToilet && (

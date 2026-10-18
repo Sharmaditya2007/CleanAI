@@ -25,6 +25,7 @@ import { api } from '../services/api';
 import { Toilet, MunicipalAnalytics, Complaint, CleaningTask } from '../types';
 import { StatusBadge } from '../components/StatusBadge';
 import { AIInspectModal } from '../components/AIInspectModal';
+import { ThreeDCard } from '../components/ThreeDCard';
 import { useAuth } from '../context/AuthContext';
 
 export const MunicipalPortal: React.FC = () => {
@@ -168,38 +169,54 @@ export const MunicipalPortal: React.FC = () => {
       {/* Live Metric Cards from Real Database */}
       {analytics && (
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
-          <div className="apple-glass-card p-3.5 rounded-2xl text-center">
-            <p className="text-[11px] font-medium text-[#A1A1A6]">Total Facilities</p>
-            <p className="text-2xl font-bold tracking-tight text-[#F5F5F7] mt-0.5">{analytics.total_toilets}</p>
-          </div>
-          <div className="apple-glass-card p-3.5 rounded-2xl text-center">
-            <p className="text-[11px] font-medium text-[#30D158]">Clean</p>
-            <p className="text-2xl font-bold tracking-tight text-[#30D158] mt-0.5">{analytics.clean_toilets}</p>
-          </div>
-          <div className="apple-glass-card p-3.5 rounded-2xl text-center">
-            <p className="text-[11px] font-medium text-[#FF9F0A]">Needs Cleaning</p>
-            <p className="text-2xl font-bold tracking-tight text-[#FF9F0A] mt-0.5">{analytics.needs_cleaning_toilets}</p>
-          </div>
-          <div className="apple-glass-card p-3.5 rounded-2xl text-center">
-            <p className="text-[11px] font-medium text-[#8E8E93]">Maintenance</p>
-            <p className="text-2xl font-bold tracking-tight text-[#8E8E93] mt-0.5">{analytics.under_maintenance_toilets}</p>
-          </div>
-          <div className="apple-glass-card p-3.5 rounded-2xl text-center">
-            <p className="text-[11px] font-medium text-[#2997FF]">Pending Review</p>
-            <p className="text-2xl font-bold tracking-tight text-[#2997FF] mt-0.5">{analytics.pending_approval_toilets}</p>
-          </div>
-          <div className="apple-glass-card p-3.5 rounded-2xl text-center">
-            <p className="text-[11px] font-medium text-[#BF5AF2]">Inspections</p>
-            <p className="text-2xl font-bold tracking-tight text-[#BF5AF2] mt-0.5">{analytics.completed_inspections}</p>
-          </div>
-          <div className="apple-glass-card p-3.5 rounded-2xl text-center">
-            <p className="text-[11px] font-medium text-[#FF453A]">Complaints</p>
-            <p className="text-2xl font-bold tracking-tight text-[#FF453A] mt-0.5">{analytics.open_complaints}</p>
-          </div>
-          <div className="apple-glass-card p-3.5 rounded-2xl text-center">
-            <p className="text-[11px] font-medium text-[#FF9F0A]">Overdue Tasks</p>
-            <p className="text-2xl font-bold tracking-tight text-[#FF9F0A] mt-0.5">{analytics.overdue_tasks}</p>
-          </div>
+          <ThreeDCard maxTilt={8} scaleOnHover={1.04}>
+            <div className="apple-glass-card p-3.5 rounded-2xl text-center h-full">
+              <p className="text-[11px] font-medium text-[#A1A1A6]">Total Facilities</p>
+              <p className="text-2xl font-bold tracking-tight text-[#F5F5F7] mt-0.5">{analytics.total_toilets}</p>
+            </div>
+          </ThreeDCard>
+          <ThreeDCard maxTilt={8} scaleOnHover={1.04}>
+            <div className="apple-glass-card p-3.5 rounded-2xl text-center h-full border-[#30D158]/30">
+              <p className="text-[11px] font-medium text-[#30D158]">Clean</p>
+              <p className="text-2xl font-bold tracking-tight text-[#30D158] mt-0.5">{analytics.clean_toilets}</p>
+            </div>
+          </ThreeDCard>
+          <ThreeDCard maxTilt={8} scaleOnHover={1.04}>
+            <div className="apple-glass-card p-3.5 rounded-2xl text-center h-full border-[#FF9F0A]/30">
+              <p className="text-[11px] font-medium text-[#FF9F0A]">Needs Clean</p>
+              <p className="text-2xl font-bold tracking-tight text-[#FF9F0A] mt-0.5">{analytics.needs_cleaning_toilets}</p>
+            </div>
+          </ThreeDCard>
+          <ThreeDCard maxTilt={8} scaleOnHover={1.04}>
+            <div className="apple-glass-card p-3.5 rounded-2xl text-center h-full">
+              <p className="text-[11px] font-medium text-[#8E8E93]">Maintenance</p>
+              <p className="text-2xl font-bold tracking-tight text-[#8E8E93] mt-0.5">{analytics.under_maintenance_toilets}</p>
+            </div>
+          </ThreeDCard>
+          <ThreeDCard maxTilt={8} scaleOnHover={1.04}>
+            <div className="apple-glass-card p-3.5 rounded-2xl text-center h-full border-[#2997FF]/30">
+              <p className="text-[11px] font-medium text-[#2997FF]">Pending Review</p>
+              <p className="text-2xl font-bold tracking-tight text-[#2997FF] mt-0.5">{analytics.pending_approval_toilets}</p>
+            </div>
+          </ThreeDCard>
+          <ThreeDCard maxTilt={8} scaleOnHover={1.04}>
+            <div className="apple-glass-card p-3.5 rounded-2xl text-center h-full">
+              <p className="text-[11px] font-medium text-[#BF5AF2]">Inspections</p>
+              <p className="text-2xl font-bold tracking-tight text-[#BF5AF2] mt-0.5">{analytics.completed_inspections}</p>
+            </div>
+          </ThreeDCard>
+          <ThreeDCard maxTilt={8} scaleOnHover={1.04}>
+            <div className="apple-glass-card p-3.5 rounded-2xl text-center h-full border-[#FF453A]/30">
+              <p className="text-[11px] font-medium text-[#FF453A]">Complaints</p>
+              <p className="text-2xl font-bold tracking-tight text-[#FF453A] mt-0.5">{analytics.open_complaints}</p>
+            </div>
+          </ThreeDCard>
+          <ThreeDCard maxTilt={8} scaleOnHover={1.04}>
+            <div className="apple-glass-card p-3.5 rounded-2xl text-center h-full">
+              <p className="text-[11px] font-medium text-[#FF9F0A]">Overdue</p>
+              <p className="text-2xl font-bold tracking-tight text-[#FF9F0A] mt-0.5">{analytics.overdue_tasks}</p>
+            </div>
+          </ThreeDCard>
         </div>
       )}
 
