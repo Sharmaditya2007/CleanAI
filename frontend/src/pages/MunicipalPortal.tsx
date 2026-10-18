@@ -28,9 +28,11 @@ import { AIInspectModal } from '../components/AIInspectModal';
 import { useAuth } from '../context/AuthContext';
 
 export const MunicipalPortal: React.FC = () => {
-  const { user, login, logout, quickSwitchRole } = useAuth();
+  const { user, login, register, logout, quickSwitchRole } = useAuth();
 
   // Authentication form state for officers who aren't logged in
+  const [isRegister, setIsRegister] = useState(false);
+  const [officerName, setOfficerName] = useState('');
   const [officerEmail, setOfficerEmail] = useState('');
   const [officerPassword, setOfficerPassword] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
@@ -97,14 +99,23 @@ export const MunicipalPortal: React.FC = () => {
     }
   };
 
-  const handleOfficerLogin = async (e: React.FormEvent) => {
+  const handleOfficerAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthLoading(true);
     setAuthError(null);
     try {
-      await login(officerEmail, officerPassword);
+      if (isRegister) {
+        await register({
+          email: officerEmail,
+          password: officerPassword,
+          full_name: officerName,
+          role: 'officer'
+        });
+      } else {
+        await login(officerEmail, officerPassword);
+      }
     } catch (err: any) {
-      setAuthError(err.message || 'Login failed. Please check officer credentials.');
+      setAuthError(err.message || (isRegister ? 'Registration failed.' : 'Login failed. Please check officer credentials.'));
     } finally {
       setAuthLoading(false);
     }
@@ -212,7 +223,7 @@ export const MunicipalPortal: React.FC = () => {
     }
   };
 
-  // If not logged in as officer, render simple secure login screen
+  // If not logged in as officer, render simple secure login / signup screen
   if (!isOfficer) {
     return (
       <div className="max-w-md mx-auto px-4 py-16 space-y-6 text-[#F5F5F7]">
@@ -220,9 +231,11 @@ export const MunicipalPortal: React.FC = () => {
           <div className="w-12 h-12 rounded-2xl bg-[#141414] border border-[#262626] flex items-center justify-center mx-auto text-[#F5F5F7]">
             <ShieldCheck size={26} />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">Authority Portal Login</h1>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {isRegister ? 'Register Municipal Officer' : 'Authority Portal Login'}
+          </h1>
           <p className="text-xs text-[#A1A1A6]">
-            Secure access for authorized municipal health and sanitation officers.
+            {isRegister ? 'Create an authorized officer account to inspect and verify sanitation.' : 'Secure access for authorized municipal health and sanitation officers.'}
           </p>
         </div>
 
@@ -234,7 +247,24 @@ export const MunicipalPortal: React.FC = () => {
             </div>
           )}
 
-          <form onSubmit={handleOfficerLogin} className="space-y-4">
+          <form onSubmit={handleOfficerAuth} className="space-y-4">
+            {isRegister && (
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-[#A1A1A6]">Officer Full Name</label>
+                <div className="relative">
+                  <User size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6E6E73]" />
+                  <input
+                    type="text"
+                    required
+                    value={officerName}
+                    onChange={(e) => setOfficerName(e.target.value)}
+                    placeholder=""
+                    className="w-full pl-10 pr-3.5 py-2.5 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] focus:border-[#F5F5F7]/40 focus:outline-hidden"
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="space-y-1.5">
               <label className="block text-xs font-semibold text-[#A1A1A6]">Officer Email</label>
               <div className="relative">
@@ -273,13 +303,31 @@ export const MunicipalPortal: React.FC = () => {
               {authLoading ? (
                 <>
                   <Loader2 size={14} className="animate-spin text-[#050505]" />
-                  <span>Verifying Credentials...</span>
+                  <span>Verifying...</span>
                 </>
               ) : (
-                <span>Log In as Municipal Officer</span>
+                <span>{isRegister ? 'Register as Municipal Officer' : 'Log In as Municipal Officer'}</span>
               )}
             </button>
           </form>
+
+          {/* Toggle between Log In and Sign Up */}
+          <div className="text-center pt-2 border-t border-[#1F1F1F]">
+            <button
+              type="button"
+              onClick={() => {
+                setIsRegister(!isRegister);
+                setAuthError(null);
+              }}
+              className="text-xs text-[#A1A1A6] hover:text-[#F5F5F7] transition-colors cursor-pointer"
+            >
+              {isRegister ? (
+                <span>Already have an officer account? <strong className="text-[#F5F5F7] underline">Log In</strong></span>
+              ) : (
+                <span>Need an officer account? <strong className="text-[#F5F5F7] underline">Sign Up</strong></span>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     );

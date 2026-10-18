@@ -17,16 +17,19 @@ import {
   LogOut,
   Mail,
   Lock,
-  AlertCircle
+  AlertCircle,
+  User
 } from 'lucide-react';
 import { api, getMediaUrl } from '../services/api';
 import { Toilet, CleaningTask } from '../types';
 import { useAuth } from '../context/AuthContext';
 
 export const OwnerPortal: React.FC = () => {
-  const { user, login, logout } = useAuth();
+  const { user, login, register, logout } = useAuth();
 
-  // Login state for owner if not logged in
+  // Login / Register state for owner if not logged in
+  const [isRegister, setIsRegister] = useState(false);
+  const [ownerName, setOwnerName] = useState('');
   const [ownerEmail, setOwnerEmail] = useState('');
   const [ownerPassword, setOwnerPassword] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
@@ -86,14 +89,23 @@ export const OwnerPortal: React.FC = () => {
     }
   };
 
-  const handleOwnerLogin = async (e: React.FormEvent) => {
+  const handleOwnerAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthLoading(true);
     setAuthError(null);
     try {
-      await login(ownerEmail, ownerPassword);
+      if (isRegister) {
+        await register({
+          email: ownerEmail,
+          password: ownerPassword,
+          full_name: ownerName,
+          role: 'owner'
+        });
+      } else {
+        await login(ownerEmail, ownerPassword);
+      }
     } catch (err: any) {
-      setAuthError(err.message || 'Login failed. Please check contractor credentials.');
+      setAuthError(err.message || (isRegister ? 'Registration failed.' : 'Login failed. Please check contractor credentials.'));
     } finally {
       setAuthLoading(false);
     }
@@ -199,7 +211,7 @@ export const OwnerPortal: React.FC = () => {
     }
   };
 
-  // If not logged in as owner, show secure Owner Login screen
+  // If not logged in as owner, show secure Owner Login / Sign Up screen
   if (!isOwner) {
     return (
       <div className="max-w-md mx-auto px-4 py-16 space-y-6 text-[#F5F5F7]">
@@ -207,9 +219,11 @@ export const OwnerPortal: React.FC = () => {
           <div className="w-12 h-12 rounded-2xl bg-[#141414] border border-[#262626] flex items-center justify-center mx-auto text-[#F5F5F7]">
             <Building2 size={26} />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">Facility Owner Access</h1>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {isRegister ? 'Register Facility Owner' : 'Facility Owner Access'}
+          </h1>
           <p className="text-xs text-[#A1A1A6]">
-            Secure portal for toilet owners and sanitation maintenance contractors.
+            {isRegister ? 'Create an account to register facilities and manage cleaning tasks.' : 'Secure portal for toilet owners and sanitation maintenance contractors.'}
           </p>
         </div>
 
@@ -221,7 +235,24 @@ export const OwnerPortal: React.FC = () => {
             </div>
           )}
 
-          <form onSubmit={handleOwnerLogin} className="space-y-4">
+          <form onSubmit={handleOwnerAuth} className="space-y-4">
+            {isRegister && (
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-[#A1A1A6]">Full Name</label>
+                <div className="relative">
+                  <User size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6E6E73]" />
+                  <input
+                    type="text"
+                    required
+                    value={ownerName}
+                    onChange={(e) => setOwnerName(e.target.value)}
+                    placeholder=""
+                    className="w-full pl-10 pr-3.5 py-2.5 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] focus:border-[#F5F5F7]/40 focus:outline-hidden"
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="space-y-1.5">
               <label className="block text-xs font-semibold text-[#A1A1A6]">Owner / Contractor Email</label>
               <div className="relative">
@@ -260,13 +291,31 @@ export const OwnerPortal: React.FC = () => {
               {authLoading ? (
                 <>
                   <Loader2 size={14} className="animate-spin text-[#050505]" />
-                  <span>Verifying Credentials...</span>
+                  <span>Verifying...</span>
                 </>
               ) : (
-                <span>Log In as Facility Owner</span>
+                <span>{isRegister ? 'Register as Facility Owner' : 'Log In as Facility Owner'}</span>
               )}
             </button>
           </form>
+
+          {/* Toggle between Log In and Sign Up */}
+          <div className="text-center pt-2 border-t border-[#1F1F1F]">
+            <button
+              type="button"
+              onClick={() => {
+                setIsRegister(!isRegister);
+                setAuthError(null);
+              }}
+              className="text-xs text-[#A1A1A6] hover:text-[#F5F5F7] transition-colors cursor-pointer"
+            >
+              {isRegister ? (
+                <span>Already have an owner account? <strong className="text-[#F5F5F7] underline">Log In</strong></span>
+              ) : (
+                <span>Need a facility owner account? <strong className="text-[#F5F5F7] underline">Sign Up</strong></span>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     );
