@@ -17,13 +17,18 @@ export const LoginPage: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [serverStatus, setServerStatus] = useState<'checking' | 'online' | 'offline'>('checking');
+  const [serverStatus, setServerStatus] = useState<'checking' | 'online' | 'offline' | 'cloud-preview'>('checking');
 
   useEffect(() => {
     let mounted = true;
     api.getHealth()
-      .then(() => {
-        if (mounted) setServerStatus('online');
+      .then((health) => {
+        if (!mounted) return;
+        if (health.service?.includes('Cloud Preview')) {
+          setServerStatus('cloud-preview');
+        } else {
+          setServerStatus('online');
+        }
       })
       .catch(() => {
         if (mounted) setServerStatus('offline');
@@ -123,6 +128,12 @@ export const LoginPage: React.FC = () => {
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#30D158]/10 text-[#30D158] text-[10px] font-semibold border border-[#30D158]/20">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#30D158] animate-pulse" />
                 Backend API Online (Port 8000)
+              </span>
+            )}
+            {serverStatus === 'cloud-preview' && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#2997FF]/10 text-[#2997FF] text-[10px] font-semibold border border-[#2997FF]/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#2997FF] animate-pulse" />
+                Cloud Preview (Interactive Mode)
               </span>
             )}
             {serverStatus === 'offline' && (

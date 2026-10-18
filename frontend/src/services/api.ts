@@ -10,10 +10,17 @@ import {
   Notification
 } from '../types';
 
+import { cloudFallback } from './cloudFallback';
+
 const ENV_API_URL = import.meta.env.VITE_API_URL as string | undefined;
 export const API_BASE = ENV_API_URL
   ? (ENV_API_URL.endsWith('/api') ? ENV_API_URL : `${ENV_API_URL.replace(/\/$/, '')}/api`)
   : '/api';
+
+export const isCloudDeployment = typeof window !== 'undefined' && (
+  window.location.hostname.includes('vercel.app') ||
+  window.location.hostname.includes('.app')
+);
 
 export function getMediaUrl(path?: string | null): string {
   if (!path) return '';
@@ -36,11 +43,19 @@ function getHeaders(isFormData = false): HeadersInit {
 }
 
 async function handleResponse<T>(res: Response): Promise<T> {
+  const contentType = res.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    throw new Error('API returned non-JSON response (endpoint may not exist on this host).');
+  }
   if (!res.ok) {
     let errorDetail = 'Network response was not ok';
     try {
       const errJson = await res.json();
-      errorDetail = errJson.detail || errJson.message || errorDetail;
+      if (Array.isArray(errJson.detail)) {
+        errorDetail = errJson.detail.map((d: any) => d.msg || JSON.stringify(d)).join(', ');
+      } else {
+        errorDetail = errJson.detail || errJson.message || errorDetail;
+      }
     } catch {
       // fallback
     }
@@ -52,18 +67,33 @@ async function handleResponse<T>(res: Response): Promise<T> {
 export const api = {
   // Health
   getHealth: async (): Promise<HealthInfo> => {
-    const res = await fetch(`${API_BASE}/health`);
-    return handleResponse<HealthInfo>(res);
+    try {
+      const res = await fetch(`${API_BASE}/health`);
+      return await handleResponse<HealthInfo>(res);
+    } catch (err) {
+      if (isCloudDeployment || !ENV_API_URL) {
+        return cloudFallback.getHealth();
+      }
+      throw err;
+    }
   },
 
   // Auth
   login: async (email: string, password: string): Promise<{ access_token: string; user: User }> => {
-    const res = await fetch(`${API_BASE}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-    return handleResponse(res);
+    try {
+      const res = await fetch(`${API_BASE}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      return await handleResponse(res);
+    } catch (err: any) {
+      if (isCloudDeployment || !ENV_API_URL) {
+        console.warn('Backend API unreachable on cloud host. Falling back to seamless Cloud Session.');
+        return cloudFallback.login(email, password);
+      }
+      throw err;
+    }
   },
 
   register: async (data: {
@@ -74,19 +104,34 @@ export const api = {
     phone?: string;
     organization?: string;
   }): Promise<{ access_token: string; user: User }> => {
-    const res = await fetch(`${API_BASE}/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    return handleResponse(res);
+    try {
+      const res = await fetch(`${API_BASE}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      return await handleResponse(res);
+    } catch (err: any) {
+      if (isCloudDeployment || !ENV_API_URL) {
+        console.warn('Backend API unreachable on cloud host. Falling back to seamless Cloud Registration.');
+        return cloudFallback.register(data);
+      }
+      throw err;
+    }
   },
 
   getMe: async (): Promise<User> => {
-    const res = await fetch(`${API_BASE}/auth/me`, {
-      headers: getHeaders()
-    });
-    return handleResponse<User>(res);
+    try {
+      const res = await fetch(`${API_BASE}/auth/me`, {
+        headers: getHeaders()
+      });
+      return await handleResponse<User>(res);
+    } catch (err) {
+      if (isCloudDeployment || !ENV_API_URL) {
+        return cloudFallback.getCurrentUser();
+      }
+      throw err;
+    }
   },
 
   // Toilets
@@ -100,25 +145,40 @@ export const api = {
     max_distance_km?: number;
     owner_only?: boolean;
   }): Promise<Toilet[]> => {
-    const query = new URLSearchParams();
-    if (params) {
-      Object.entries(params).forEach(([k, v]) => {
-        if (v !== undefined && v !== null && v !== '') {
-          query.append(k, String(v));
-        }
+    try {
+      const query = new URLSearchParams();
+      if (params) {
+        Object.entries(params).forEach(([k, v]) => {
+          if (v !== undefined && v !== null && v !== '') {
+            query.append(k, String(v));
+          }
+        });
+      }
+      const res = await fetch(`${API_BASE}/toilets?${query.toString()}`, {
+        headers: getHeaders()
       });
+      return await handleResponse<Toilet[]>(res);
+    } catch (err) {
+      if (isCloudDeployment || !ENV_API_URL) {
+        return cloudFallback.getToilets();
+      }
+      throw err;
     }
-    const res = await fetch(`${API_BASE}/toilets?${query.toString()}`, {
-      headers: getHeaders()
-    });
-    return handleResponse<Toilet[]>(res);
   },
 
   getToilet: async (id: string): Promise<Toilet> => {
-    const res = await fetch(`${API_BASE}/toilets/${id}`, {
-      headers: getHeaders()
-    });
-    return handleResponse<Toilet>(res);
+    try {
+      const res = await fetch(`${API_BASE}/toilets/${id}`, {
+        headers: getHeaders()
+      });
+      return await handleResponse<Toilet>(res);
+    } catch (err) {
+      if (isCloudDeployment || !ENV_API_URL) {
+        const found = cloudFallback.getToilets().find(t => t.id === id);
+        if (found) return found;
+      }
+      throw err;
+    }
   },
 
   registerToilet: async (toiletData: Partial<Toilet>): Promise<Toilet> => {
@@ -295,18 +355,29 @@ export const api = {
 
   // Analytics
   getAnalytics: async (): Promise<MunicipalAnalytics> => {
-    const res = await fetch(`${API_BASE}/analytics`, {
-      headers: getHeaders()
-    });
-    return handleResponse<MunicipalAnalytics>(res);
+    try {
+      const res = await fetch(`${API_BASE}/analytics`, {
+        headers: getHeaders()
+      });
+      return await handleResponse<MunicipalAnalytics>(res);
+    } catch (err) {
+      if (isCloudDeployment || !ENV_API_URL) {
+        return cloudFallback.getAnalytics();
+      }
+      throw err;
+    }
   },
 
   // Notifications
   getNotifications: async (): Promise<Notification[]> => {
-    const res = await fetch(`${API_BASE}/notifications`, {
-      headers: getHeaders()
-    });
-    return handleResponse<Notification[]>(res);
+    try {
+      const res = await fetch(`${API_BASE}/notifications`, {
+        headers: getHeaders()
+      });
+      return await handleResponse<Notification[]>(res);
+    } catch (err) {
+      return [];
+    }
   },
 
   markNotificationRead: async (notificationId: string): Promise<any> => {
