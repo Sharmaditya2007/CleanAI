@@ -94,18 +94,12 @@ export const Navbar: React.FC = () => {
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-2.5">
-                <span className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#121212] border border-[#262626] text-[10px] text-emerald-400 font-medium">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  No Citizen Login Needed
-                </span>
-                <Link
-                  to="/login"
-                  className="px-3.5 py-1.5 rounded-xl text-xs font-medium bg-[#141414] hover:bg-[#1E1E1E] text-[#A1A1A6] hover:text-[#F5F5F7] border border-[#262626] transition-colors"
-                >
-                  Official Login
-                </Link>
-              </div>
+              <Link
+                to="/login"
+                className="px-3.5 py-1.5 rounded-xl text-xs font-medium bg-[#141414] hover:bg-[#1E1E1E] text-[#A1A1A6] hover:text-[#F5F5F7] border border-[#262626] transition-colors"
+              >
+                Sign In
+              </Link>
             )}
           </div>
 
@@ -156,18 +150,13 @@ export const Navbar: React.FC = () => {
                 </button>
               </div>
             ) : (
-              <div className="w-full space-y-2">
-                <div className="text-[11px] text-center text-[#6E6E73]">
-                  Citizens: No login needed to browse & report
-                </div>
-                <Link
-                  to="/login"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block w-full text-center py-2 rounded-xl text-xs font-semibold bg-[#161616] border border-[#262626] text-[#A1A1A6] hover:text-[#F5F5F7]"
-                >
-                  Official / Authority Login
-                </Link>
-              </div>
+              <Link
+                to="/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block w-full text-center py-2 rounded-xl text-xs font-semibold bg-[#161616] border border-[#262626] text-[#A1A1A6] hover:text-[#F5F5F7]"
+              >
+                Sign In
+              </Link>
             )}
           </div>
         </div>

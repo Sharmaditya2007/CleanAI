@@ -70,82 +70,25 @@ export const LoginPage: React.FC = () => {
 
   return (
     <div className="min-h-[85vh] bg-[#050505] flex items-center justify-center px-4 py-16">
-      <div className="relative w-full max-w-md bg-[#0D0D0D] rounded-3xl p-8 sm:p-10 border border-[#262626] shadow-2xl space-y-6">
+      <div className="relative w-full max-w-sm bg-[#0D0D0D] rounded-3xl p-8 border border-[#262626] shadow-2xl space-y-6">
         
         {/* Brand Header */}
         <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-2xl bg-[#161616] border border-[#262626] flex items-center justify-center mx-auto shadow-inner text-[#F5F5F7]">
-            <Sparkles size={22} />
+          <div className="w-11 h-11 rounded-2xl bg-[#161616] border border-[#262626] flex items-center justify-center mx-auto text-[#F5F5F7]">
+            <Sparkles size={20} />
           </div>
-          <h2 className="text-2xl font-semibold tracking-tight text-[#F5F5F7]">
-            {isRegister ? 'Register Staff Account' : 'Official Portal Login'}
+          <h2 className="text-xl font-semibold tracking-tight text-[#F5F5F7]">
+            {isRegister ? 'Create Account' : 'Sign In'}
           </h2>
-          <p className="text-xs text-[#86868B] max-w-xs mx-auto">
-            Authorized municipal officers & facility maintenance contractors.
-          </p>
-
-          {/* Real-time Server Connectivity Badge */}
-          <div className="flex items-center justify-center pt-1">
-            {serverStatus === 'online' && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-semibold border border-emerald-500/20">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                Backend API Connected
-              </span>
-            )}
-            {serverStatus === 'offline' && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/10 text-rose-400 text-[10px] font-semibold border border-rose-500/20">
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                Backend Offline / Unreachable
-              </span>
-            )}
-            {serverStatus === 'checking' && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1A1A1A] text-[#86868B] text-[10px] font-semibold border border-[#262626]">
-                <Loader2 size={10} className="animate-spin text-[#A1A1A6]" />
-                Checking API connection...
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Citizen Notice Card - No Login Ever Required for Citizens */}
-        <div className="p-4 rounded-2xl bg-[#141414] border border-[#262626] text-center space-y-2">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#1E1E1E] text-[10px] font-semibold text-emerald-400 border border-emerald-500/20">
-            <span>Citizens: No Login Required</span>
-          </div>
-          <p className="text-xs text-[#A1A1A6] leading-relaxed">
-            Anyone can find toilets, view live cleanliness statuses, and report issues freely without any account or login.
-          </p>
-          <div className="pt-1">
-            <button
-              type="button"
-              onClick={() => navigate('/toilets')}
-              className="px-4 py-2 rounded-xl bg-[#F5F5F7] hover:bg-white text-[#050505] text-xs font-semibold transition-all inline-flex items-center gap-1.5 cursor-pointer shadow-sm"
-            >
-              <span>Explore Public Toilets</span>
-              <ArrowRight size={13} />
-            </button>
-          </div>
         </div>
 
         {error && (
-          <div className="p-3.5 bg-rose-500/10 border border-rose-500/25 rounded-2xl text-rose-400 text-xs font-semibold flex flex-col gap-1.5">
-            <span>{error}</span>
-            {error.includes('already registered') && (
-              <button
-                type="button"
-                onClick={() => {
-                  setIsRegister(false);
-                  setError(null);
-                }}
-                className="text-left text-[#F5F5F7] hover:underline cursor-pointer text-[11px]"
-              >
-                Switch to Sign In &rarr;
-              </button>
-            )}
+          <div className="p-3 bg-rose-500/10 border border-rose-500/25 rounded-xl text-rose-400 text-xs font-semibold">
+            {error}
           </div>
         )}
 
-        {/* Form - Zero Fake Placeholders */}
+        {/* Form - Only Important Inputs */}
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           {isRegister && (
             <div>
@@ -155,20 +98,18 @@ export const LoginPage: React.FC = () => {
                 required
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                placeholder=""
                 className="w-full p-3 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7] focus:border-[#F5F5F7]/40 focus:outline-hidden transition-colors"
               />
             </div>
           )}
 
           <div>
-            <label className="block font-semibold text-[#A1A1A6] mb-1.5">Official Email Address</label>
+            <label className="block font-semibold text-[#A1A1A6] mb-1.5">Email</label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder=""
               className="w-full p-3 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7] focus:border-[#F5F5F7]/40 focus:outline-hidden transition-colors"
             />
           </div>
@@ -180,18 +121,17 @@ export const LoginPage: React.FC = () => {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder=""
               className="w-full p-3 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7] focus:border-[#F5F5F7]/40 focus:outline-hidden transition-colors"
             />
           </div>
 
           {isRegister && (
             <div>
-              <label className="block font-semibold text-[#A1A1A6] mb-1.5">Official Role</label>
+              <label className="block font-semibold text-[#A1A1A6] mb-1.5">Role</label>
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { id: 'officer', label: 'Municipal Officer' },
-                  { id: 'owner', label: 'Facility Owner / Contractor' }
+                  { id: 'officer', label: 'Officer' },
+                  { id: 'owner', label: 'Facility Owner' }
                 ].map((r) => (
                   <button
                     type="button"
@@ -213,20 +153,20 @@ export const LoginPage: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 bg-[#F5F5F7] hover:bg-white text-[#050505] font-semibold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-50 text-xs mt-2"
+            className="w-full py-3 bg-[#F5F5F7] hover:bg-white text-[#050505] font-semibold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-50 text-xs mt-2"
           >
             {loading ? (
               <Loader2 size={16} className="animate-spin text-[#050505]" />
             ) : (
               <>
-                <span>{isRegister ? 'Register Official Account' : 'Sign In'}</span>
+                <span>{isRegister ? 'Register' : 'Sign In'}</span>
                 <ArrowRight size={14} />
               </>
             )}
           </button>
         </form>
 
-        {/* Toggle between Login and Register */}
+        {/* Toggle */}
         <div className="text-center pt-2 border-t border-[#1F1F1F]">
           <button
             type="button"
@@ -237,13 +177,12 @@ export const LoginPage: React.FC = () => {
             className="text-xs text-[#A1A1A6] hover:text-[#F5F5F7] transition-colors cursor-pointer"
           >
             {isRegister ? (
-              <span>Have an official account? <strong className="text-[#F5F5F7] underline">Sign in</strong></span>
+              <span>Already have an account? <strong className="text-[#F5F5F7] underline">Sign in</strong></span>
             ) : (
-              <span>Register new officer / contractor? <strong className="text-[#F5F5F7] underline">Create staff account</strong></span>
+              <span>Need an account? <strong className="text-[#F5F5F7] underline">Register</strong></span>
             )}
           </button>
         </div>
-
       </div>
     </div>
   );

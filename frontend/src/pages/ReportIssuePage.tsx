@@ -175,15 +175,15 @@ export const ReportIssuePage: React.FC = () => {
       
       {/* Header */}
       <div className="text-center space-y-3">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#161616] border border-[#262626] text-xs font-medium text-emerald-400">
-          <ShieldCheck size={14} className="text-emerald-400" />
-          <span>No Citizen Account or Login Needed</span>
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#161616] border border-[#262626] text-xs font-medium text-[#A1A1A6]">
+          <AlertCircle size={14} className="text-amber-400" />
+          <span>Sanitation Feedback</span>
         </div>
         <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-[#F5F5F7]">
-          Report a Sanitation Issue
+          Report an Issue
         </h1>
         <p className="text-sm text-[#A1A1A6] max-w-xl mx-auto">
-          Help maintain civic hygiene standards. Submit complaints directly to municipal authorities without any login or credentials.
+          Submit sanitation issues directly to municipal dispatch for inspection and resolution.
         </p>
       </div>
 
