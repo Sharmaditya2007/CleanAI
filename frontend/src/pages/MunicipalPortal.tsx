@@ -344,6 +344,7 @@ export const MunicipalPortal: React.FC = () => {
       {/* Clean Navigation Tabs */}
       <div className="flex items-center gap-2 border-b border-[#262626] pb-3 text-xs font-medium">
         <button
+          id="tab-toilets"
           onClick={() => setActiveTab('toilets')}
           className={`px-4 py-2 rounded-xl transition-all cursor-pointer ${
             activeTab === 'toilets'
@@ -355,6 +356,7 @@ export const MunicipalPortal: React.FC = () => {
         </button>
 
         <button
+          id="tab-complaints"
           onClick={() => setActiveTab('complaints')}
           className={`px-4 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
             activeTab === 'complaints'
@@ -369,6 +371,7 @@ export const MunicipalPortal: React.FC = () => {
         </button>
 
         <button
+          id="tab-register"
           onClick={() => setActiveTab('register')}
           className={`px-4 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
             activeTab === 'register'

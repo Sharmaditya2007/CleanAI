@@ -319,6 +319,7 @@ export const OwnerPortal: React.FC = () => {
       {/* Tabs */}
       <div className="flex items-center gap-2 border-b border-[#262626] pb-3 text-xs font-medium">
         <button
+          id="owner-tab-toilets"
           onClick={() => setActiveTab('toilets')}
           className={`px-4 py-2 rounded-xl transition-all cursor-pointer ${
             activeTab === 'toilets'
@@ -330,6 +331,7 @@ export const OwnerPortal: React.FC = () => {
         </button>
 
         <button
+          id="owner-tab-tasks"
           onClick={() => setActiveTab('tasks')}
           className={`px-4 py-2 rounded-xl transition-all cursor-pointer ${
             activeTab === 'tasks'
