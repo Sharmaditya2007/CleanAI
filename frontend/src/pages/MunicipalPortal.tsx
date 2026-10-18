@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   ShieldCheck,
   CheckCircle2,
@@ -30,8 +31,8 @@ import { useAuth } from '../context/AuthContext';
 export const MunicipalPortal: React.FC = () => {
   const { user, login, register, logout, quickSwitchRole } = useAuth();
 
-  // Authentication form state for officers who aren't logged in
-  const [isRegister, setIsRegister] = useState(false);
+  const [searchParams] = useSearchParams();
+  const [isRegister, setIsRegister] = useState(() => searchParams.get('mode') === 'register');
   const [officerName, setOfficerName] = useState('');
   const [officerEmail, setOfficerEmail] = useState('');
   const [officerPassword, setOfficerPassword] = useState('');
@@ -240,10 +241,56 @@ export const MunicipalPortal: React.FC = () => {
         </div>
 
         <div className="bg-[#0D0D0D] border border-[#262626] rounded-2xl p-6 space-y-5 shadow-xl">
+          {/* Segment switch tabs */}
+          <div className="grid grid-cols-2 p-1 bg-[#141414] border border-[#262626] rounded-xl text-xs font-medium">
+            <button
+              type="button"
+              onClick={() => {
+                setIsRegister(false);
+                setAuthError(null);
+              }}
+              className={`py-2 rounded-lg transition-all cursor-pointer ${
+                !isRegister
+                  ? 'bg-[#F5F5F7] text-[#050505] font-semibold shadow-xs'
+                  : 'text-[#A1A1A6] hover:text-[#F5F5F7]'
+              }`}
+            >
+              Log In
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setIsRegister(true);
+                setAuthError(null);
+              }}
+              className={`py-2 rounded-lg transition-all cursor-pointer ${
+                isRegister
+                  ? 'bg-[#F5F5F7] text-[#050505] font-semibold shadow-xs'
+                  : 'text-[#A1A1A6] hover:text-[#F5F5F7]'
+              }`}
+            >
+              Sign Up
+            </button>
+          </div>
+
           {authError && (
-            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2">
-              <AlertCircle size={14} />
-              <span>{authError}</span>
+            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <AlertCircle size={14} className="shrink-0" />
+                <span>{authError}</span>
+              </div>
+              {authError.toLowerCase().includes('already') && isRegister && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsRegister(false);
+                    setAuthError(null);
+                  }}
+                  className="self-start text-[11px] font-medium text-white underline underline-offset-2 hover:text-[#A1A1A6] transition-colors"
+                >
+                  Already registered? Click here to Log In &rarr;
+                </button>
+              )}
             </div>
           )}
 
