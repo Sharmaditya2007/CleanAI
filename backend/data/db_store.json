@@ -32,6 +32,17 @@
       "organization": null,
       "is_active": true,
       "created_at": "2026-10-18T09:35:54.719911"
+    },
+    {
+      "id": "usr_4def4ed752",
+      "email": "adityashukla0913@gmail.com",
+      "full_name": "Aditya Sharma",
+      "role": "citizen",
+      "hashed_password": "$2b$12$pKogtS4T3QIXzt.wKcbCG.9C0IyYMiAvu9spTQKEZELM2W8oq5eNG",
+      "phone": null,
+      "organization": null,
+      "is_active": true,
+      "created_at": "2026-10-18T17:29:19.353948"
     }
   ],
   "toilets": [
