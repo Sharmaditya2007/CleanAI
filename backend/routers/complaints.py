@@ -182,7 +182,7 @@ async def update_complaint_status(
     new_status = payload.get("status")
     resolution_notes = payload.get("resolution_notes")
 
-    if new_status not in ["Received", "Under Investigation", "Action Taken", "Resolved"]:
+    if new_status not in ["Open", "Received", "In Progress", "Under Investigation", "Action Taken", "Resolved"]:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid complaint status.")
 
     complaint = await db_manager.find_one("complaints", {"id": complaint_id})

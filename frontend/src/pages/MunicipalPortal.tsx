@@ -5,681 +5,912 @@ import {
   AlertTriangle,
   Wrench,
   Clock,
-  Layers,
   Search,
-  Filter,
   Camera,
   Check,
   X,
   FileText,
   AlertCircle,
   PlusCircle,
-  TrendingUp,
-  BarChart3,
   Loader2,
-  Send,
+  Lock,
+  Mail,
+  User,
+  LogOut,
+  MapPin,
+  ExternalLink,
   ChevronRight,
-  RotateCw
+  Filter
 } from 'lucide-react';
-import { api } from '../services/api';
-import { Toilet, MunicipalAnalytics, Complaint, CleaningTask } from '../types';
-import { StatusBadge } from '../components/StatusBadge';
+import { api, getMediaUrl } from '../services/api';
+import { Toilet, Complaint } from '../types';
 import { AIInspectModal } from '../components/AIInspectModal';
-import { ThreeDCard } from '../components/ThreeDCard';
 import { useAuth } from '../context/AuthContext';
 
 export const MunicipalPortal: React.FC = () => {
-  const { user, quickSwitchRole } = useAuth();
+  const { user, login, logout, quickSwitchRole } = useAuth();
 
+  // Authentication form state for officers who aren't logged in
+  const [officerEmail, setOfficerEmail] = useState('');
+  const [officerPassword, setOfficerPassword] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  // Portal data states
   const [toilets, setToilets] = useState<Toilet[]>([]);
-  const [analytics, setAnalytics] = useState<MunicipalAnalytics | null>(null);
   const [complaints, setComplaints] = useState<Complaint[]>([]);
-  const [tasks, setTasks] = useState<CleaningTask[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'toilets' | 'complaints' | 'register'>('toilets');
 
-  // Filters & Search
+  // Search and filter states
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [activeTab, setActiveTab] = useState<'toilets' | 'complaints' | 'tasks' | 'analytics'>('toilets');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [complaintFilter, setComplaintFilter] = useState('all');
 
-  // Modal states
+  // AI Inspection Modal state
   const [selectedToiletForInspect, setSelectedToiletForInspect] = useState<Toilet | null>(null);
-  const [rejectingToiletId, setRejectingToiletId] = useState<string | null>(null);
-  const [rejectReason, setRejectReason] = useState('');
-  
-  // Assign task modal
-  const [assigningTaskToilet, setAssigningTaskToilet] = useState<Toilet | null>(null);
-  const [taskNotes, setTaskNotes] = useState('');
-  const [taskPriority, setTaskPriority] = useState('High');
+
+  // New Toilet Registration Form state
+  const [regForm, setRegForm] = useState({
+    name: '',
+    address: '',
+    city: 'New Delhi',
+    locality: '',
+    latitude: 28.6315,
+    longitude: 77.2167,
+    description: '',
+    facilities: ['Running Water', 'Western WC', 'Washbasin'],
+    opening_hours: '06:00 - 23:00',
+    accessibility: true,
+    contact_number: '+91-11-2334455'
+  });
+  const [isSubmittingReg, setIsSubmittingReg] = useState(false);
+  const [regSuccess, setRegSuccess] = useState<string | null>(null);
+  const [regError, setRegError] = useState<string | null>(null);
+
+  // Complaint Resolution Note Modal
+  const [resolvingComplaint, setResolvingComplaint] = useState<Complaint | null>(null);
+  const [resolutionNote, setResolutionNote] = useState('');
+  const [updatingComplaintId, setUpdatingComplaintId] = useState<string | null>(null);
+
+  const isOfficer = user && user.role === 'officer';
 
   useEffect(() => {
-    if (user && user.role !== 'officer') {
-      quickSwitchRole('officer');
+    if (isOfficer) {
+      loadData();
     }
-    loadData();
-  }, []);
+  }, [isOfficer]);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const [tList, anData, cList, tkList] = await Promise.all([
+      const [tList, cList] = await Promise.all([
         api.getToilets(),
-        api.getAnalytics(),
-        api.getComplaints(),
-        api.getTasks()
+        api.getComplaints()
       ]);
       setToilets(tList);
-      setAnalytics(anData);
       setComplaints(cList);
-      setTasks(tkList);
-    } catch (e) {
-      console.error('Failed to load municipal portal data:', e);
+    } catch (err) {
+      console.error('Failed to load municipal portal data:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleApprove = async (toiletId: string) => {
+  const handleOfficerLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthLoading(true);
+    setAuthError(null);
     try {
-      await api.approveToilet(toiletId);
-      await loadData();
-    } catch (e: any) {
-      alert(e.message || 'Approval failed');
+      await login(officerEmail, officerPassword);
+    } catch (err: any) {
+      setAuthError(err.message || 'Login failed. Please check officer credentials.');
+    } finally {
+      setAuthLoading(false);
     }
   };
 
-  const handleRejectSubmit = async (toiletId: string) => {
-    if (!rejectReason.trim()) {
-      alert('Rejection reason is required.');
+  const handleQuickOfficerLogin = async () => {
+    setAuthLoading(true);
+    setAuthError(null);
+    try {
+      await login('officer@cleanai.gov', 'Officer@123');
+    } catch (err: any) {
+      setAuthError(err.message || 'Quick login failed.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleUpdateComplaintStatus = async (complaintId: string, newStatus: string, notes?: string) => {
+    setUpdatingComplaintId(complaintId);
+    try {
+      await api.updateComplaintStatus(complaintId, newStatus, notes);
+      setComplaints((prev) =>
+        prev.map((c) =>
+          c.id === complaintId
+            ? { ...c, status: newStatus as any, resolution_notes: notes || c.resolution_notes }
+            : c
+        )
+      );
+      if (resolvingComplaint?.id === complaintId) {
+        setResolvingComplaint(null);
+        setResolutionNote('');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to update complaint status');
+    } finally {
+      setUpdatingComplaintId(null);
+    }
+  };
+
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!regForm.name || !regForm.address || !regForm.locality) {
+      setRegError('Facility name, address, and locality are required.');
       return;
     }
-    try {
-      await api.rejectToilet(toiletId, rejectReason);
-      setRejectingToiletId(null);
-      setRejectReason('');
-      await loadData();
-    } catch (e: any) {
-      alert(e.message || 'Rejection failed');
-    }
-  };
 
-  const handleAssignTaskSubmit = async () => {
-    if (!assigningTaskToilet) return;
+    setIsSubmittingReg(true);
+    setRegError(null);
+    setRegSuccess(null);
+
     try {
-      await api.createTask({
-        toilet_id: assigningTaskToilet.id,
-        priority: taskPriority,
-        notes: taskNotes || 'Sanitation maintenance required.'
+      const newToilet = await api.registerToilet(regForm as any);
+      setToilets((prev) => [newToilet, ...prev]);
+      setRegSuccess(`Toilet "${newToilet.name}" registered successfully.`);
+      setRegForm({
+        name: '',
+        address: '',
+        city: 'New Delhi',
+        locality: '',
+        latitude: 28.6315,
+        longitude: 77.2167,
+        description: '',
+        facilities: ['Running Water', 'Western WC', 'Washbasin'],
+        opening_hours: '06:00 - 23:00',
+        accessibility: true,
+        contact_number: '+91-11-2334455'
       });
-      setAssigningTaskToilet(null);
-      setTaskNotes('');
-      await loadData();
-      alert('Cleaning task successfully assigned to facility owner.');
-    } catch (e: any) {
-      alert(e.message || 'Task assignment failed');
+      setTimeout(() => {
+        setRegSuccess(null);
+        setActiveTab('toilets');
+      }, 2000);
+    } catch (err: any) {
+      setRegError(err.message || 'Registration failed.');
+    } finally {
+      setIsSubmittingReg(false);
     }
   };
 
-  const handleUpdateComplaint = async (complaintId: string, status: string) => {
-    try {
-      await api.updateComplaintStatus(complaintId, status, 'Reviewed and verified by municipal officer.');
-      await loadData();
-    } catch (e: any) {
-      alert(e.message || 'Failed to update complaint');
+  const toggleFacility = (facility: string) => {
+    setRegForm((prev) => ({
+      ...prev,
+      facilities: prev.facilities.includes(facility)
+        ? prev.facilities.filter((f) => f !== facility)
+        : [...prev.facilities, facility]
+    }));
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'Clean':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            <CheckCircle2 size={12} />
+            Clean
+          </span>
+        );
+      case 'Needs Cleaning':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+            <AlertTriangle size={12} />
+            Needs Cleaning
+          </span>
+        );
+      case 'Under Maintenance':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20">
+            <Wrench size={12} />
+            Under Maintenance
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-zinc-800 text-zinc-300 border border-zinc-700">
+            {status}
+          </span>
+        );
     }
   };
 
-  // Filtered toilets
-  const filteredToilets = toilets.filter(t => {
-    const matchesSearch = searchQuery === '' || 
-      `${t.name} ${t.locality} ${t.address}`.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || t.verified_status === statusFilter || t.registration_status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
-
-  return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 text-[#F5F5F7]">
-      
-      {/* Portal Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#262626] pb-6">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <span className="p-2 bg-[#161616] border border-[#262626] text-[#2997FF] rounded-xl">
-              <ShieldCheck size={20} />
-            </span>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#F5F5F7]">
-              Municipal Command Center
-            </h1>
+  // If not logged in as officer, render simple secure login screen
+  if (!isOfficer) {
+    return (
+      <div className="max-w-md mx-auto px-4 py-16 space-y-6 text-[#F5F5F7]">
+        <div className="text-center space-y-2">
+          <div className="w-12 h-12 rounded-2xl bg-[#141414] border border-[#262626] flex items-center justify-center mx-auto text-[#F5F5F7]">
+            <ShieldCheck size={26} />
           </div>
-          <p className="text-xs sm:text-sm text-[#A1A1A6] mt-1">
-            Real-time public sanitation intelligence, YOLO inspection audit trails, and contractor oversight.
+          <h1 className="text-2xl font-bold tracking-tight">Authority Portal Login</h1>
+          <p className="text-xs text-[#A1A1A6]">
+            Secure access for authorized municipal health and sanitation officers.
           </p>
         </div>
 
-        <button
-          onClick={loadData}
-          disabled={loading}
-          className="self-start sm:self-auto px-4 py-2 bg-[#161616] hover:bg-[#222222] text-[#F5F5F7] font-medium border border-[#262626] rounded-full text-xs flex items-center gap-2 transition-colors disabled:opacity-50"
-        >
-          <RotateCw size={13} className={loading ? 'animate-spin text-[#2997FF]' : 'text-[#A1A1A6]'} />
-          <span>Refresh Data</span>
-        </button>
+        <div className="bg-[#0D0D0D] border border-[#262626] rounded-2xl p-6 space-y-5 shadow-xl">
+          {authError && (
+            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2">
+              <AlertCircle size={14} />
+              <span>{authError}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleOfficerLogin} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-[#A1A1A6]">Officer Email</label>
+              <div className="relative">
+                <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6E6E73]" />
+                <input
+                  type="email"
+                  required
+                  value={officerEmail}
+                  onChange={(e) => setOfficerEmail(e.target.value)}
+                  placeholder="officer@cleanai.gov"
+                  className="w-full pl-10 pr-3.5 py-2.5 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] placeholder-[#6E6E73] focus:border-[#F5F5F7]/40 focus:outline-hidden"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-[#A1A1A6]">Password</label>
+              <div className="relative">
+                <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6E6E73]" />
+                <input
+                  type="password"
+                  required
+                  value={officerPassword}
+                  onChange={(e) => setOfficerPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full pl-10 pr-3.5 py-2.5 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] placeholder-[#6E6E73] focus:border-[#F5F5F7]/40 focus:outline-hidden"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={authLoading}
+              className="w-full py-2.5 rounded-xl text-xs font-semibold text-[#050505] bg-[#F5F5F7] hover:bg-white transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            >
+              {authLoading ? (
+                <>
+                  <Loader2 size={14} className="animate-spin text-[#050505]" />
+                  <span>Verifying Credentials...</span>
+                </>
+              ) : (
+                <span>Log In as Municipal Officer</span>
+              )}
+            </button>
+          </form>
+
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-[#262626]"></div>
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="px-2 bg-[#0D0D0D] text-[#6E6E73]">Quick Access</span>
+            </div>
+          </div>
+
+          <button
+            onClick={handleQuickOfficerLogin}
+            disabled={authLoading}
+            className="w-full py-2.5 rounded-xl text-xs font-semibold bg-[#161616] hover:bg-[#202020] text-[#F5F5F7] border border-[#262626] transition-all flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <ShieldCheck size={14} className="text-emerald-400" />
+            <span>One-Click Officer Demo Login (officer@cleanai.gov)</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Filtered Toilets
+  const filteredToilets = toilets.filter((t) => {
+    const q = searchQuery.toLowerCase().trim();
+    const matchesSearch =
+      !q ||
+      t.name.toLowerCase().includes(q) ||
+      t.locality.toLowerCase().includes(q) ||
+      t.city.toLowerCase().includes(q);
+    const matchesStatus = statusFilter === 'all' || t.verified_status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  // Filtered Complaints
+  const filteredComplaints = complaints.filter((c) => {
+    if (complaintFilter === 'all') return true;
+    if (complaintFilter === 'Open') return c.status === 'Open' || c.status === 'Received';
+    if (complaintFilter === 'In Progress') return c.status === 'In Progress' || c.status === 'Under Investigation' || c.status === 'Action Taken';
+    if (complaintFilter === 'Resolved') return c.status === 'Resolved';
+    return true;
+  });
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 text-[#F5F5F7]">
+      
+      {/* Top Header Card */}
+      <div className="bg-[#0D0D0D] border border-[#262626] rounded-2xl p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xl">
+        <div className="space-y-1.5">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#161616] border border-[#262626] text-xs font-medium text-[#A1A1A6]">
+            <ShieldCheck size={14} className="text-emerald-400" />
+            <span>Authorized Municipal Health Command</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#F5F5F7]">
+            Authority Dashboard
+          </h1>
+          <p className="text-xs sm:text-sm text-[#A1A1A6]">
+            Logged in as <strong className="text-[#F5F5F7]">{user?.full_name || 'Municipal Officer'}</strong> ({user?.organization || 'Municipal Corporation'})
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => loadData()}
+            className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#161616] hover:bg-[#202020] text-[#F5F5F7] border border-[#262626] transition-colors cursor-pointer"
+          >
+            Refresh Data
+          </button>
+          <button
+            onClick={() => logout()}
+            className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 transition-colors flex items-center gap-1.5 cursor-pointer"
+          >
+            <LogOut size={13} />
+            <span>Log Out</span>
+          </button>
+        </div>
       </div>
 
-      {/* Live Metric Cards from Real Database */}
-      {analytics && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
-          <ThreeDCard maxTilt={8} scaleOnHover={1.04}>
-            <div className="apple-glass-card p-3.5 rounded-2xl text-center h-full">
-              <p className="text-[11px] font-medium text-[#A1A1A6]">Total Facilities</p>
-              <p className="text-2xl font-bold tracking-tight text-[#F5F5F7] mt-0.5">{analytics.total_toilets}</p>
-            </div>
-          </ThreeDCard>
-          <ThreeDCard maxTilt={8} scaleOnHover={1.04}>
-            <div className="apple-glass-card p-3.5 rounded-2xl text-center h-full border-[#30D158]/30">
-              <p className="text-[11px] font-medium text-[#30D158]">Clean</p>
-              <p className="text-2xl font-bold tracking-tight text-[#30D158] mt-0.5">{analytics.clean_toilets}</p>
-            </div>
-          </ThreeDCard>
-          <ThreeDCard maxTilt={8} scaleOnHover={1.04}>
-            <div className="apple-glass-card p-3.5 rounded-2xl text-center h-full border-[#FF9F0A]/30">
-              <p className="text-[11px] font-medium text-[#FF9F0A]">Needs Clean</p>
-              <p className="text-2xl font-bold tracking-tight text-[#FF9F0A] mt-0.5">{analytics.needs_cleaning_toilets}</p>
-            </div>
-          </ThreeDCard>
-          <ThreeDCard maxTilt={8} scaleOnHover={1.04}>
-            <div className="apple-glass-card p-3.5 rounded-2xl text-center h-full">
-              <p className="text-[11px] font-medium text-[#8E8E93]">Maintenance</p>
-              <p className="text-2xl font-bold tracking-tight text-[#8E8E93] mt-0.5">{analytics.under_maintenance_toilets}</p>
-            </div>
-          </ThreeDCard>
-          <ThreeDCard maxTilt={8} scaleOnHover={1.04}>
-            <div className="apple-glass-card p-3.5 rounded-2xl text-center h-full border-[#2997FF]/30">
-              <p className="text-[11px] font-medium text-[#2997FF]">Pending Review</p>
-              <p className="text-2xl font-bold tracking-tight text-[#2997FF] mt-0.5">{analytics.pending_approval_toilets}</p>
-            </div>
-          </ThreeDCard>
-          <ThreeDCard maxTilt={8} scaleOnHover={1.04}>
-            <div className="apple-glass-card p-3.5 rounded-2xl text-center h-full">
-              <p className="text-[11px] font-medium text-[#BF5AF2]">Inspections</p>
-              <p className="text-2xl font-bold tracking-tight text-[#BF5AF2] mt-0.5">{analytics.completed_inspections}</p>
-            </div>
-          </ThreeDCard>
-          <ThreeDCard maxTilt={8} scaleOnHover={1.04}>
-            <div className="apple-glass-card p-3.5 rounded-2xl text-center h-full border-[#FF453A]/30">
-              <p className="text-[11px] font-medium text-[#FF453A]">Complaints</p>
-              <p className="text-2xl font-bold tracking-tight text-[#FF453A] mt-0.5">{analytics.open_complaints}</p>
-            </div>
-          </ThreeDCard>
-          <ThreeDCard maxTilt={8} scaleOnHover={1.04}>
-            <div className="apple-glass-card p-3.5 rounded-2xl text-center h-full">
-              <p className="text-[11px] font-medium text-[#FF9F0A]">Overdue</p>
-              <p className="text-2xl font-bold tracking-tight text-[#FF9F0A] mt-0.5">{analytics.overdue_tasks}</p>
-            </div>
-          </ThreeDCard>
-        </div>
-      )}
-
-      {/* Tabs */}
-      <div className="flex border-b border-[#262626] space-x-2 sm:space-x-4">
+      {/* Clean Navigation Tabs */}
+      <div className="flex items-center gap-2 border-b border-[#262626] pb-3 text-xs font-medium">
         <button
           onClick={() => setActiveTab('toilets')}
-          className={`py-3 px-4 font-semibold text-xs sm:text-sm border-b-2 flex items-center gap-2 transition-all ${
+          className={`px-4 py-2 rounded-xl transition-all cursor-pointer ${
             activeTab === 'toilets'
-              ? 'border-[#2997FF] text-[#2997FF]'
-              : 'border-transparent text-[#A1A1A6] hover:text-[#F5F5F7]'
+              ? 'bg-[#F5F5F7] text-[#050505] font-semibold'
+              : 'text-[#A1A1A6] hover:text-[#F5F5F7] hover:bg-[#141414]'
           }`}
         >
-          <Layers size={15} />
-          <span>Toilet Facilities ({toilets.length})</span>
+          Registered Toilets ({toilets.length})
         </button>
 
         <button
           onClick={() => setActiveTab('complaints')}
-          className={`py-3 px-4 font-semibold text-xs sm:text-sm border-b-2 flex items-center gap-2 transition-all ${
+          className={`px-4 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
             activeTab === 'complaints'
-              ? 'border-[#2997FF] text-[#2997FF]'
-              : 'border-transparent text-[#A1A1A6] hover:text-[#F5F5F7]'
+              ? 'bg-[#F5F5F7] text-[#050505] font-semibold'
+              : 'text-[#A1A1A6] hover:text-[#F5F5F7] hover:bg-[#141414]'
           }`}
         >
-          <AlertCircle size={15} />
-          <span>Citizen Reports ({complaints.length})</span>
+          <span>Customer Complaints ({complaints.length})</span>
+          {complaints.filter((c) => c.status !== 'Resolved').length > 0 && (
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+          )}
         </button>
 
         <button
-          onClick={() => setActiveTab('tasks')}
-          className={`py-3 px-4 font-semibold text-xs sm:text-sm border-b-2 flex items-center gap-2 transition-all ${
-            activeTab === 'tasks'
-              ? 'border-[#2997FF] text-[#2997FF]'
-              : 'border-transparent text-[#A1A1A6] hover:text-[#F5F5F7]'
+          onClick={() => setActiveTab('register')}
+          className={`px-4 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+            activeTab === 'register'
+              ? 'bg-[#F5F5F7] text-[#050505] font-semibold'
+              : 'text-[#A1A1A6] hover:text-[#F5F5F7] hover:bg-[#141414]'
           }`}
         >
-          <Clock size={15} />
-          <span>Cleaning Tasks ({tasks.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('analytics')}
-          className={`py-3 px-4 font-semibold text-xs sm:text-sm border-b-2 flex items-center gap-2 transition-all ${
-            activeTab === 'analytics'
-              ? 'border-[#2997FF] text-[#2997FF]'
-              : 'border-transparent text-[#A1A1A6] hover:text-[#F5F5F7]'
-          }`}
-        >
-          <TrendingUp size={15} />
-          <span>Analytics & Trends</span>
+          <PlusCircle size={13} />
+          <span>Register New Toilet</span>
         </button>
       </div>
 
-      {/* TAB 1: TOILETS LIST & AI INSPECT */}
+      {/* ======================================================== */}
+      {/* TAB 1: REGISTERED TOILETS & AI INSPECTION                */}
+      {/* ======================================================== */}
       {activeTab === 'toilets' && (
         <div className="space-y-4">
           
-          {/* Search & Filters */}
-          <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
-            <div className="relative w-full sm:w-80">
+          {/* Filter Bar */}
+          <div className="bg-[#0D0D0D] border border-[#262626] p-4 rounded-xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div className="relative flex-1 max-w-sm">
               <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6E6E73]" />
               <input
                 type="text"
-                placeholder="Search facility name or locality..."
+                placeholder="Search facility name, locality..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] placeholder-[#6E6E73] focus:border-[#2997FF] focus:outline-hidden"
+                className="w-full pl-9 pr-3.5 py-2 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] placeholder-[#6E6E73] focus:outline-hidden"
               />
             </div>
 
-            <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto pb-1">
-              <span className="text-[11px] font-semibold text-[#6E6E73] uppercase tracking-wider mr-1">Status:</span>
-              {['all', 'Clean', 'Needs Cleaning', 'Under Maintenance', 'Pending Approval'].map((s) => (
+            <div className="flex items-center gap-1.5">
+              {['all', 'Clean', 'Needs Cleaning', 'Under Maintenance'].map((st) => (
                 <button
-                  key={s}
-                  onClick={() => setStatusFilter(s)}
-                  className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all whitespace-nowrap ${
-                    statusFilter === s
-                      ? 'bg-[#F5F5F7] text-[#050505]'
-                      : 'bg-[#161616] text-[#A1A1A6] hover:text-[#F5F5F7]'
+                  key={st}
+                  onClick={() => setStatusFilter(st)}
+                  className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
+                    statusFilter === st
+                      ? 'bg-[#262626] text-[#F5F5F7]'
+                      : 'text-[#6E6E73] hover:text-[#A1A1A6]'
                   }`}
                 >
-                  {s === 'all' ? 'All Facilities' : s}
+                  {st === 'all' ? 'All Statuses' : st}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Table */}
-          <div className="apple-glass-card rounded-3xl overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="bg-[#161616] border-b border-[#262626] text-[#A1A1A6] font-semibold">
-                    <th className="py-3.5 px-4">Facility Name & Locality</th>
-                    <th className="py-3.5 px-4">Registration</th>
-                    <th className="py-3.5 px-4">Verified Public Status</th>
-                    <th className="py-3.5 px-4">Facilities</th>
-                    <th className="py-3.5 px-4">Owner / Contractor</th>
-                    <th className="py-3.5 px-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#1F1F1F]">
-                  {filteredToilets.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="text-center py-8 text-[#6E6E73] font-medium">
-                        No facilities found matching your criteria.
-                      </td>
+          {/* Toilet Records Table/Cards */}
+          {loading ? (
+            <div className="py-20 text-center space-y-3">
+              <Loader2 size={24} className="animate-spin mx-auto text-[#F5F5F7]" />
+              <p className="text-xs text-[#A1A1A6]">Loading facilities...</p>
+            </div>
+          ) : filteredToilets.length === 0 ? (
+            <div className="bg-[#0D0D0D] border border-[#262626] rounded-2xl p-12 text-center text-xs text-[#A1A1A6]">
+              No toilet records found.
+            </div>
+          ) : (
+            <div className="bg-[#0D0D0D] border border-[#262626] rounded-2xl overflow-hidden shadow-xl">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-[#262626] bg-[#121212] text-[#A1A1A6]">
+                      <th className="py-3 px-4 font-semibold">Toilet Name & Address</th>
+                      <th className="py-3 px-4 font-semibold">Locality / City</th>
+                      <th className="py-3 px-4 font-semibold">Current Verified Status</th>
+                      <th className="py-3 px-4 font-semibold">Last Verified Inspection</th>
+                      <th className="py-3 px-4 font-semibold text-right">Actions</th>
                     </tr>
-                  ) : (
-                    filteredToilets.map((toilet) => (
-                      <tr key={toilet.id} className="hover:bg-[#161616]/60 transition-colors">
-                        <td className="py-3.5 px-4">
-                          <p className="font-semibold text-[#F5F5F7] text-sm tracking-tight">{toilet.name}</p>
-                          <p className="text-[#A1A1A6] text-[11px] mt-0.5">{toilet.address}, {toilet.locality}</p>
+                  </thead>
+                  <tbody className="divide-y divide-[#1C1C1E]">
+                    {filteredToilets.map((toilet) => (
+                      <tr key={toilet.id} className="hover:bg-[#121212]/60 transition-colors">
+                        <td className="py-3.5 px-4 font-medium text-[#F5F5F7]">
+                          <div className="font-semibold">{toilet.name}</div>
+                          <div className="text-[11px] text-[#6E6E73] truncate max-w-xs">{toilet.address}</div>
                         </td>
-
-                        <td className="py-3.5 px-4">
-                          <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ${
-                              toilet.registration_status === 'Approved'
-                                ? 'bg-[#30D158]/10 text-[#30D158] border-[#30D158]/25'
-                                : toilet.registration_status === 'Pending Approval'
-                                ? 'bg-[#FF9F0A]/10 text-[#FF9F0A] border-[#FF9F0A]/25'
-                                : 'bg-[#FF453A]/10 text-[#FF453A] border-[#FF453A]/25'
-                            }`}
-                          >
-                            {toilet.registration_status}
-                          </span>
-                          {toilet.rejection_reason && (
-                            <p className="text-[10px] text-[#FF453A] mt-1 max-w-[140px] truncate" title={toilet.rejection_reason}>
-                              Reason: {toilet.rejection_reason}
-                            </p>
-                          )}
+                        <td className="py-3.5 px-4 text-[#A1A1A6]">
+                          {toilet.locality}, {toilet.city}
                         </td>
-
                         <td className="py-3.5 px-4">
-                          <StatusBadge status={toilet.verified_status} isStale={toilet.is_stale} size="sm" />
+                          {getStatusBadge(toilet.verified_status)}
                         </td>
-
-                        <td className="py-3.5 px-4">
-                          <div className="flex flex-wrap gap-1 max-w-[180px]">
-                            {toilet.facilities.slice(0, 3).map((f, i) => (
-                              <span key={i} className="bg-[#161616] text-[#A1A1A6] border border-[#262626] px-1.5 py-0.5 rounded-md text-[10px]">
-                                {f}
-                              </span>
-                            ))}
-                            {toilet.facilities.length > 3 && (
-                              <span className="text-[10px] text-[#6E6E73]">+{toilet.facilities.length - 3}</span>
-                            )}
-                          </div>
+                        <td className="py-3.5 px-4 text-[#A1A1A6]">
+                          {toilet.last_inspected_at
+                            ? new Date(toilet.last_inspected_at).toLocaleDateString()
+                            : 'Pending inspection'}
                         </td>
-
-                        <td className="py-3.5 px-4">
-                          <p className="font-medium text-[#F5F5F7]">{toilet.owner_name || 'Municipal'}</p>
-                          <p className="text-[#6E6E73] text-[10px] font-mono">{toilet.contact_number || 'N/A'}</p>
-                        </td>
-
                         <td className="py-3.5 px-4 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            {toilet.registration_status === 'Pending Approval' && (
-                              <>
-                                <button
-                                  onClick={() => handleApprove(toilet.id)}
-                                  className="p-1.5 bg-[#30D158]/20 hover:bg-[#30D158]/30 text-[#30D158] border border-[#30D158]/30 rounded-lg transition-colors"
-                                  title="Approve Registration"
-                                >
-                                  <Check size={14} />
-                                </button>
-                                <button
-                                  onClick={() => setRejectingToiletId(toilet.id)}
-                                  className="p-1.5 bg-[#FF453A]/20 hover:bg-[#FF453A]/30 text-[#FF453A] border border-[#FF453A]/30 rounded-lg transition-colors"
-                                  title="Reject Registration"
-                                >
-                                  <X size={14} />
-                                </button>
-                              </>
-                            )}
-
-                            <button
-                              onClick={() => setSelectedToiletForInspect(toilet)}
-                              className="apple-button-primary px-3 py-1.5 rounded-full flex items-center gap-1.5 text-[11px] font-semibold shadow-xs"
-                            >
-                              <Camera size={13} />
-                              <span>AI Inspect</span>
-                            </button>
-
-                            <button
-                              onClick={() => setAssigningTaskToilet(toilet)}
-                              className="px-2.5 py-1.5 bg-[#161616] hover:bg-[#222222] border border-[#262626] text-[#F5F5F7] font-medium rounded-full text-[11px] transition-colors"
-                              title="Assign Cleaning Task"
-                            >
-                              Assign Task
-                            </button>
-                          </div>
+                          <button
+                            onClick={() => setSelectedToiletForInspect(toilet)}
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#F5F5F7] hover:bg-white text-[#050505] transition-all inline-flex items-center gap-1.5 shadow-sm cursor-pointer"
+                          >
+                            <Camera size={13} />
+                            <span>AI Inspect & Verify</span>
+                          </button>
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
+          )}
+
         </div>
       )}
 
-      {/* TAB 2: CITIZEN COMPLAINTS */}
+      {/* ======================================================== */}
+      {/* TAB 2: CUSTOMER COMPLAINTS MANAGEMENT                    */}
+      {/* ======================================================== */}
       {activeTab === 'complaints' && (
-        <div className="apple-glass-card rounded-3xl overflow-hidden">
-          <div className="p-5 border-b border-[#262626]">
-            <h3 className="font-semibold text-base text-[#F5F5F7]">Citizen Sanitation Reports</h3>
-            <p className="text-xs text-[#A1A1A6] mt-0.5">
-              Review issues filed by public citizens with unique tracking references.
-            </p>
+        <div className="space-y-4">
+          
+          {/* Filter Pills */}
+          <div className="flex items-center gap-2">
+            {['all', 'Open', 'In Progress', 'Resolved'].map((st) => (
+              <button
+                key={st}
+                onClick={() => setComplaintFilter(st)}
+                className={`text-xs px-3.5 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
+                  complaintFilter === st
+                    ? 'bg-[#F5F5F7] text-[#050505] font-semibold'
+                    : 'bg-[#121212] text-[#A1A1A6] hover:bg-[#1A1A1A] border border-[#262626]'
+                }`}
+              >
+                {st === 'all' ? 'All Complaints' : st}
+              </button>
+            ))}
           </div>
 
-          <div className="divide-y divide-[#1F1F1F]">
-            {complaints.length === 0 ? (
-              <p className="text-center py-8 text-[#6E6E73] text-xs">No citizen complaints recorded.</p>
-            ) : (
-              complaints.map((c) => (
-                <div key={c.id} className="p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-[#161616]/60">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs font-semibold text-[#2997FF] bg-[#2997FF]/10 border border-[#2997FF]/20 px-2 py-0.5 rounded-full">
-                        {c.reference_number}
-                      </span>
-                      <span className="text-xs font-medium text-[#F5F5F7] bg-[#161616] border border-[#262626] px-2 py-0.5 rounded-full capitalize">
-                        {c.category.replace(/_/g, ' ')}
-                      </span>
-                      <span className="text-[11px] text-[#6E6E73] font-mono">
-                        {new Date(c.created_at).toLocaleDateString()}
-                      </span>
+          {filteredComplaints.length === 0 ? (
+            <div className="bg-[#0D0D0D] border border-[#262626] rounded-2xl p-12 text-center text-xs text-[#A1A1A6]">
+              No complaints in this category.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filteredComplaints.map((c) => {
+                const isUpdating = updatingComplaintId === c.id;
+                return (
+                  <div
+                    key={c.id}
+                    className="bg-[#0D0D0D] border border-[#262626] rounded-2xl p-5 space-y-3 shadow-lg"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#1C1C1E] pb-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs font-bold text-[#2997FF]">{c.reference_number}</span>
+                          <span className="text-[#3D3D3D]">•</span>
+                          <span className="text-xs font-semibold text-[#F5F5F7]">{c.toilet_name}</span>
+                        </div>
+                        <div className="text-[11px] text-[#6E6E73] mt-0.5">
+                          Submitted on {new Date(c.created_at).toLocaleString()}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-[#6E6E73]">Status:</span>
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                          c.status === 'Resolved'
+                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                            : c.status === 'In Progress' || c.status === 'Under Investigation' || c.status === 'Action Taken'
+                            ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                            : 'bg-sky-500/10 text-sky-400 border border-sky-500/20'
+                        }`}>
+                          {c.status}
+                        </span>
+                      </div>
                     </div>
-                    <p className="font-semibold text-sm text-[#F5F5F7]">{c.toilet_name}</p>
-                    <p className="text-xs text-[#A1A1A6] leading-relaxed max-w-2xl">{c.description}</p>
-                    {c.resolution_notes && (
-                      <p className="text-[11px] text-[#30D158] font-medium mt-1">Resolution: {c.resolution_notes}</p>
-                    )}
-                  </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-xs font-medium px-2.5 py-1 rounded-full border bg-[#161616] border-[#262626] text-[#A1A1A6]">
-                      {c.status}
-                    </span>
-                    {c.status !== 'Resolved' && (
-                      <button
-                        onClick={() => handleUpdateComplaint(c.id, 'Resolved')}
-                        className="apple-button-primary px-3 py-1.5 text-xs font-semibold rounded-full transition-colors"
-                      >
-                        Mark Resolved
-                      </button>
-                    )}
+                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 text-xs">
+                      <div className="sm:col-span-8 space-y-2">
+                        <div>
+                          <span className="text-[#6E6E73]">Issue Type: </span>
+                          <span className="font-medium text-[#F5F5F7] capitalize">
+                            {c.category.replace('_', ' ')}
+                          </span>
+                        </div>
+                        <p className="text-[#D1D1D6] p-3 rounded-xl bg-[#141414] border border-[#262626]">
+                          {c.description || 'No description provided.'}
+                        </p>
+                        {c.resolution_notes && (
+                          <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[11px]">
+                            <strong>Resolution note:</strong> {c.resolution_notes}
+                          </div>
+                        )}
+                      </div>
+
+                      {c.photo_url && (
+                        <div className="sm:col-span-4 flex flex-col items-start sm:items-end">
+                          <span className="text-[11px] text-[#6E6E73] mb-1">Attached Photo:</span>
+                          <a
+                            href={getMediaUrl(c.photo_url)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block w-28 h-20 rounded-lg overflow-hidden border border-[#262626]"
+                          >
+                            <img
+                              src={getMediaUrl(c.photo_url)}
+                              alt="Complaint"
+                              className="w-full h-full object-cover"
+                            />
+                          </a>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Officer Status Action Buttons */}
+                    <div className="pt-3 border-t border-[#1C1C1E] flex flex-wrap items-center justify-between gap-3 text-xs">
+                      <span className="text-[#6E6E73]">Update Complaint Status:</span>
+                      <div className="flex items-center gap-2">
+                        {c.status !== 'Open' && c.status !== 'Received' && (
+                          <button
+                            disabled={isUpdating}
+                            onClick={() => handleUpdateComplaintStatus(c.id, 'Open')}
+                            className="px-3 py-1.5 rounded-lg text-xs font-medium bg-[#161616] hover:bg-[#202020] text-[#F5F5F7] border border-[#262626] transition-colors cursor-pointer disabled:opacity-50"
+                          >
+                            Mark Open
+                          </button>
+                        )}
+
+                        {c.status !== 'In Progress' && (
+                          <button
+                            disabled={isUpdating}
+                            onClick={() => handleUpdateComplaintStatus(c.id, 'In Progress')}
+                            className="px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 transition-colors cursor-pointer disabled:opacity-50"
+                          >
+                            Mark In Progress
+                          </button>
+                        )}
+
+                        {c.status !== 'Resolved' && (
+                          <button
+                            disabled={isUpdating}
+                            onClick={() => {
+                              setResolvingComplaint(c);
+                              setResolutionNote('Sanitation crew dispatched. Cleaned and sanitized by municipal contractor.');
+                            }}
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500 hover:bg-emerald-400 text-[#050505] transition-colors cursor-pointer disabled:opacity-50 shadow-sm"
+                          >
+                            Mark Resolved...
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
                   </div>
-                </div>
-              ))
-            )}
-          </div>
+                );
+              })}
+            </div>
+          )}
+
         </div>
       )}
 
-      {/* TAB 3: CLEANING TASKS */}
-      {activeTab === 'tasks' && (
-        <div className="apple-glass-card rounded-3xl overflow-hidden">
-          <div className="p-5 border-b border-[#262626]">
-            <h3 className="font-semibold text-base text-[#F5F5F7]">Assigned Cleaning Tasks</h3>
-            <p className="text-xs text-[#A1A1A6] mt-0.5">
-              Active sanitation orders dispatched to facility contractors and owners.
+      {/* ======================================================== */}
+      {/* TAB 3: REGISTER NEW TOILET FORM                          */}
+      {/* ======================================================== */}
+      {activeTab === 'register' && (
+        <div className="max-w-2xl mx-auto bg-[#0D0D0D] border border-[#262626] rounded-2xl p-6 sm:p-8 space-y-6 shadow-xl">
+          <div className="border-b border-[#1F1F1F] pb-4">
+            <h2 className="text-lg font-semibold text-[#F5F5F7]">
+              Register Public Toilet Facility
+            </h2>
+            <p className="text-xs text-[#6E6E73] mt-0.5">
+              Add a new municipally managed or inspected restroom to the Clean AI directory.
             </p>
           </div>
 
-          <div className="divide-y divide-[#1F1F1F]">
-            {tasks.length === 0 ? (
-              <p className="text-center py-8 text-[#6E6E73] text-xs">No active cleaning tasks.</p>
-            ) : (
-              tasks.map((task) => (
-                <div key={task.id} className="p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-[#161616]/60">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#FF9F0A]/10 text-[#FF9F0A] border border-[#FF9F0A]/25">
-                        {task.priority} Priority
-                      </span>
-                      <span className="text-xs text-[#A1A1A6]">
-                        Assigned to: {task.assigned_to_owner_name || 'Contractor'}
-                      </span>
-                    </div>
-                    <p className="font-semibold text-sm text-[#F5F5F7]">{task.toilet_name}</p>
-                    <p className="text-xs text-[#A1A1A6]">{task.notes}</p>
-                    {task.completion_notes && (
-                      <p className="text-xs text-[#2997FF] bg-[#2997FF]/10 p-2 rounded-xl mt-1 font-medium border border-[#2997FF]/20">
-                        Owner Completion Report: "{task.completion_notes}"
-                      </p>
-                    )}
-                  </div>
+          {regSuccess && (
+            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2">
+              <CheckCircle2 size={15} />
+              <span>{regSuccess}</span>
+            </div>
+          )}
 
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`text-xs font-medium px-3 py-1 rounded-full border ${
-                        task.status === 'Verified'
-                          ? 'bg-[#30D158]/10 text-[#30D158] border-[#30D158]/25'
-                          : task.status === 'Cleaning Reported'
-                          ? 'bg-[#2997FF]/10 text-[#2997FF] border-[#2997FF]/25'
-                          : 'bg-[#FF9F0A]/10 text-[#FF9F0A] border-[#FF9F0A]/25'
+          {regError && (
+            <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2">
+              <AlertCircle size={15} />
+              <span>{regError}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleRegisterSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-[#A1A1A6]">
+                Facility Name <span className="text-rose-400">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={regForm.name}
+                onChange={(e) => setRegForm({ ...regForm, name: e.target.value })}
+                placeholder="e.g. Connaught Place Block C Public Toilet"
+                className="w-full px-3.5 py-2.5 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] focus:outline-hidden"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-[#A1A1A6]">
+                  City <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={regForm.city}
+                  onChange={(e) => setRegForm({ ...regForm, city: e.target.value })}
+                  placeholder="e.g. New Delhi"
+                  className="w-full px-3.5 py-2.5 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] focus:outline-hidden"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-[#A1A1A6]">
+                  Locality / Area <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={regForm.locality}
+                  onChange={(e) => setRegForm({ ...regForm, locality: e.target.value })}
+                  placeholder="e.g. Connaught Place"
+                  className="w-full px-3.5 py-2.5 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] focus:outline-hidden"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-[#A1A1A6]">
+                Address <span className="text-rose-400">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={regForm.address}
+                onChange={(e) => setRegForm({ ...regForm, address: e.target.value })}
+                placeholder="e.g. Opposite Metro Gate 4, Inner Circle"
+                className="w-full px-3.5 py-2.5 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] focus:outline-hidden"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-[#A1A1A6]">Latitude</label>
+                <input
+                  type="number"
+                  step="0.0001"
+                  required
+                  value={regForm.latitude}
+                  onChange={(e) => setRegForm({ ...regForm, latitude: parseFloat(e.target.value) || 0 })}
+                  className="w-full px-3.5 py-2.5 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] focus:outline-hidden"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-[#A1A1A6]">Longitude</label>
+                <input
+                  type="number"
+                  step="0.0001"
+                  required
+                  value={regForm.longitude}
+                  onChange={(e) => setRegForm({ ...regForm, longitude: parseFloat(e.target.value) || 0 })}
+                  className="w-full px-3.5 py-2.5 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] focus:outline-hidden"
+                />
+              </div>
+            </div>
+
+            {/* Facilities Checkboxes */}
+            <div className="space-y-2">
+              <label className="block text-xs font-semibold text-[#A1A1A6]">Available Facilities</label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {[
+                  'Running Water',
+                  'Western WC',
+                  'Washbasin',
+                  'Soap Dispenser',
+                  'Hand Dryer',
+                  'Sanitary Napkins'
+                ].map((facility) => {
+                  const isChecked = regForm.facilities.includes(facility);
+                  return (
+                    <button
+                      type="button"
+                      key={facility}
+                      onClick={() => toggleFacility(facility)}
+                      className={`px-3 py-2 rounded-xl text-xs font-medium border text-left transition-all cursor-pointer ${
+                        isChecked
+                          ? 'bg-[#F5F5F7] text-[#050505] border-[#F5F5F7] font-semibold'
+                          : 'bg-[#161616] text-[#A1A1A6] border-[#262626]'
                       }`}
                     >
-                      {task.status}
-                    </span>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* TAB 4: ANALYTICS & TRENDS */}
-      {activeTab === 'analytics' && analytics && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Inspections Trend */}
-          <div className="apple-glass-card p-6 rounded-3xl space-y-4">
-            <h3 className="font-semibold text-base text-[#F5F5F7] flex items-center gap-2">
-              <BarChart3 size={16} className="text-[#2997FF]" />
-              <span>Inspection Activity (Last 7 Days)</span>
-            </h3>
-            <div className="space-y-2.5 pt-2">
-              {analytics.recent_inspections_trend.map((trend, i) => (
-                <div key={i} className="flex items-center justify-between text-xs">
-                  <span className="w-16 font-mono text-[#A1A1A6]">{trend.day}</span>
-                  <div className="flex-1 mx-3 h-3 bg-[#161616] rounded-full overflow-hidden flex border border-[#262626]">
-                    <div
-                      className="bg-[#30D158] h-full"
-                      style={{ width: `${trend.inspections > 0 ? (trend.clean / trend.inspections) * 100 : 0}%` }}
-                    />
-                    <div
-                      className="bg-[#FF9F0A] h-full"
-                      style={{ width: `${trend.inspections > 0 ? (trend.needs_cleaning / trend.inspections) * 100 : 0}%` }}
-                    />
-                  </div>
-                  <span className="w-14 text-right font-mono text-[#F5F5F7]">{trend.inspections} insp</span>
-                </div>
-              ))}
+                      {facility}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
 
-          {/* Frequent Issue Categories */}
-          <div className="apple-glass-card p-6 rounded-3xl space-y-4">
-            <h3 className="font-semibold text-base text-[#F5F5F7] flex items-center gap-2">
-              <TrendingUp size={16} className="text-[#2997FF]" />
-              <span>Most Common Sanitation Complaints</span>
-            </h3>
-            <div className="space-y-3 pt-2">
-              {analytics.frequent_issue_categories.length === 0 ? (
-                <div className="py-8 text-center text-[#86868B]">
-                  <p className="text-xs font-medium text-[#F5F5F7]">No citizen complaints recorded yet</p>
-                  <p className="text-[11px] text-[#6E6E73] mt-1">Issue category distributions will appear here as citizens submit reports.</p>
-                </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-[#A1A1A6]">Operating Hours</label>
+                <input
+                  type="text"
+                  value={regForm.opening_hours}
+                  onChange={(e) => setRegForm({ ...regForm, opening_hours: e.target.value })}
+                  placeholder="e.g. 24x7 or 06:00 - 23:00"
+                  className="w-full px-3.5 py-2.5 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] focus:outline-hidden"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-[#A1A1A6]">Emergency Contact</label>
+                <input
+                  type="text"
+                  value={regForm.contact_number}
+                  onChange={(e) => setRegForm({ ...regForm, contact_number: e.target.value })}
+                  placeholder="+91-11-2334455"
+                  className="w-full px-3.5 py-2.5 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] focus:outline-hidden"
+                />
+              </div>
+            </div>
+
+            <label className="flex items-center gap-2 cursor-pointer pt-1 text-xs text-[#A1A1A6]">
+              <input
+                type="checkbox"
+                checked={regForm.accessibility}
+                onChange={(e) => setRegForm({ ...regForm, accessibility: e.target.checked })}
+                className="rounded-sm bg-[#161616] border-[#333333] text-emerald-500"
+              />
+              <span>Wheelchair / Divyang Accessible Facility</span>
+            </label>
+
+            <button
+              type="submit"
+              disabled={isSubmittingReg}
+              className="w-full py-3 rounded-xl text-xs font-semibold text-[#050505] bg-[#F5F5F7] hover:bg-white transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 shadow-md"
+            >
+              {isSubmittingReg ? (
+                <>
+                  <Loader2 size={14} className="animate-spin text-[#050505]" />
+                  <span>Registering Facility in Municipal Database...</span>
+                </>
               ) : (
-                analytics.frequent_issue_categories.map((cat, i) => (
-                  <div key={i} className="space-y-1">
-                    <div className="flex justify-between text-xs font-medium">
-                      <span className="text-[#F5F5F7]">{cat.category}</span>
-                      <span className="text-[#6E6E73] font-mono">{cat.count} reports</span>
-                    </div>
-                    <div className="w-full h-2 bg-[#161616] rounded-full overflow-hidden border border-[#262626]">
-                      <div
-                        className="bg-gradient-to-r from-[#2997FF] to-[#0077ED] h-full rounded-full"
-                        style={{ width: `${Math.min(100, cat.count * 30)}%` }}
-                      />
-                    </div>
-                  </div>
-                ))
+                <span>Register Toilet in Municipal Registry</span>
               )}
-            </div>
-          </div>
+            </button>
+          </form>
         </div>
       )}
 
-      {/* AI Inspection Modal */}
+      {/* AI Inspect Modal (Opens when officer clicks "AI Inspect & Verify") */}
       {selectedToiletForInspect && (
         <AIInspectModal
           toilet={selectedToiletForInspect}
           onClose={() => setSelectedToiletForInspect(null)}
-          onInspectionConfirmed={async () => {
-            await loadData();
+          onInspectionConfirmed={(updatedToilet) => {
+            setToilets((prev) =>
+              prev.map((t) => (t.id === updatedToilet.id ? updatedToilet : t))
+            );
+            setSelectedToiletForInspect(null);
           }}
         />
       )}
 
-      {/* Reject Modal */}
-      {rejectingToiletId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-2xl">
-          <div className="w-full max-w-md bg-[#0D0D0D] border border-[#262626] rounded-3xl p-6 space-y-4 shadow-2xl text-[#F5F5F7]">
-            <h3 className="font-semibold text-base text-[#F5F5F7]">Record Rejection Reason</h3>
+      {/* Modal to Mark Complaint Resolved with Notes */}
+      {resolvingComplaint && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-[#121212] border border-[#262626] rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-[#F5F5F7]">
+                Resolve Complaint: {resolvingComplaint.reference_number}
+              </h3>
+              <button
+                onClick={() => setResolvingComplaint(null)}
+                className="text-[#6E6E73] hover:text-[#F5F5F7]"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <p className="text-xs text-[#A1A1A6]">
+              Add a municipal resolution note that will be visible to the citizen when tracking this reference number.
+            </p>
+
             <textarea
-              value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
-              placeholder="State the regulatory or physical reason for rejection..."
               rows={3}
-              className="w-full text-xs p-3 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7] focus:border-[#FF453A] focus:outline-hidden"
+              value={resolutionNote}
+              onChange={(e) => setResolutionNote(e.target.value)}
+              placeholder="e.g. Sanitation team deployed. Fixtures repaired and toilet floor bleached."
+              className="w-full px-3 py-2 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] focus:outline-hidden"
             />
-            <div className="flex justify-end gap-2">
+
+            <div className="flex items-center justify-end gap-2 pt-2">
               <button
-                onClick={() => setRejectingToiletId(null)}
-                className="px-4 py-2 text-xs font-medium text-[#A1A1A6] hover:text-[#F5F5F7] rounded-full"
+                onClick={() => setResolvingComplaint(null)}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium text-[#A1A1A6] hover:text-[#F5F5F7] bg-[#161616] cursor-pointer"
               >
                 Cancel
               </button>
               <button
-                onClick={() => handleRejectSubmit(rejectingToiletId)}
-                className="px-4 py-2 bg-[#FF453A] hover:bg-[#FF453A]/90 text-white text-xs font-semibold rounded-full"
+                onClick={() =>
+                  handleUpdateComplaintStatus(
+                    resolvingComplaint.id,
+                    'Resolved',
+                    resolutionNote
+                  )
+                }
+                className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500 hover:bg-emerald-400 text-[#050505] transition-colors cursor-pointer"
               >
-                Confirm Rejection
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Assign Task Modal */}
-      {assigningTaskToilet && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-2xl">
-          <div className="w-full max-w-md bg-[#0D0D0D] border border-[#262626] rounded-3xl p-6 space-y-4 shadow-2xl text-[#F5F5F7]">
-            <h3 className="font-semibold text-base text-[#F5F5F7]">Assign Cleaning Task</h3>
-            <p className="text-xs text-[#A1A1A6]">Facility: {assigningTaskToilet.name}</p>
-            
-            <div>
-              <label className="block text-xs font-medium text-[#A1A1A6] mb-1">Priority</label>
-              <select
-                value={taskPriority}
-                onChange={(e) => setTaskPriority(e.target.value)}
-                className="w-full text-xs p-2.5 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7]"
-              >
-                <option value="Low">Low</option>
-                <option value="Medium">Medium</option>
-                <option value="High">High</option>
-                <option value="Urgent">Urgent</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-[#A1A1A6] mb-1">Instructions / Notes</label>
-              <textarea
-                value={taskNotes}
-                onChange={(e) => setTaskNotes(e.target.value)}
-                placeholder="Specific instructions (e.g. mop floor, restock soap, repair tap)..."
-                rows={3}
-                className="w-full text-xs p-3 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7] focus:border-[#2997FF] focus:outline-hidden"
-              />
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                onClick={() => setAssigningTaskToilet(null)}
-                className="px-4 py-2 text-xs font-medium text-[#A1A1A6] hover:text-[#F5F5F7] rounded-full"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAssignTaskSubmit}
-                className="apple-button-primary px-4 py-2 text-xs font-semibold rounded-full"
-              >
-                Dispatch Task
+                Confirm Resolution
               </button>
             </div>
           </div>
@@ -689,4 +920,3 @@ export const MunicipalPortal: React.FC = () => {
     </div>
   );
 };
-

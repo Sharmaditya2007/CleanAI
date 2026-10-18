@@ -104,7 +104,7 @@ export interface Complaint {
   category: 'dirty_toilet' | 'dirty_floor' | 'missing_water' | 'broken_facility' | 'closed' | 'wrong_location' | 'other';
   description: string;
   photo_url?: string;
-  status: 'Received' | 'Under Investigation' | 'Action Taken' | 'Resolved';
+  status: 'Open' | 'Received' | 'In Progress' | 'Under Investigation' | 'Action Taken' | 'Resolved';
   resolution_notes?: string;
   created_at: string;
   updated_at: string;
@@ -118,7 +118,7 @@ export interface CleaningTask {
   assigned_to_owner_name?: string;
   assigned_by_id: string;
   assigned_by_name?: string;
-  status: 'Pending' | 'In Progress' | 'Cleaning Reported' | 'Verified';
+  status: 'Pending' | 'In Progress' | 'Cleaning Reported' | 'Verification Pending' | 'Verified' | 'Completed';
   priority: 'Low' | 'Medium' | 'High' | 'Urgent';
   notes?: string;
   completion_notes?: string;

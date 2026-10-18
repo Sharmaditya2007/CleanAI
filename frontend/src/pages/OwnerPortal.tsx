@@ -8,27 +8,37 @@ import {
   Upload,
   Camera,
   MapPin,
-  FileCheck,
   Loader2,
   Sparkles,
   Info,
-  ShieldAlert,
-  ArrowRight
+  ShieldCheck,
+  Check,
+  X,
+  LogOut,
+  Mail,
+  Lock,
+  AlertCircle
 } from 'lucide-react';
-import { api } from '../services/api';
-import { Toilet, CleaningTask, AIInferenceResult } from '../types';
-import { StatusBadge } from '../components/StatusBadge';
-import { ThreeDCard } from '../components/ThreeDCard';
+import { api, getMediaUrl } from '../services/api';
+import { Toilet, CleaningTask } from '../types';
 import { useAuth } from '../context/AuthContext';
 
 export const OwnerPortal: React.FC = () => {
-  const { user, quickSwitchRole } = useAuth();
+  const { user, login, logout } = useAuth();
 
+  // Login state for owner if not logged in
+  const [ownerEmail, setOwnerEmail] = useState('');
+  const [ownerPassword, setOwnerPassword] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  // Portal state
   const [toilets, setToilets] = useState<Toilet[]>([]);
   const [tasks, setTasks] = useState<CleaningTask[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'toilets' | 'tasks'>('toilets');
 
-  // Registration Form State
+  // Register toilet modal
   const [showRegModal, setShowRegModal] = useState(false);
   const [regForm, setRegForm] = useState({
     name: '',
@@ -41,25 +51,24 @@ export const OwnerPortal: React.FC = () => {
     facilities: ['Running Water', 'Washbasin', 'Western WC'],
     opening_hours: '06:00 - 23:00',
     accessibility: true,
-    access_type: 'public' as 'public' | 'private' | 'paid',
     contact_number: '+91-9812345678'
   });
+  const [isSubmittingReg, setIsSubmittingReg] = useState(false);
 
-  // Report Cleaning State
+  // Report cleaning modal
   const [activeTaskForReport, setActiveTaskForReport] = useState<CleaningTask | null>(null);
   const [completionNotes, setCompletionNotes] = useState('');
   const [afterPhoto, setAfterPhoto] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
-  const [afterPhotoAiResult, setAfterPhotoAiResult] = useState<AIInferenceResult | null>(null);
-  const [isAnalyzingPhoto, setIsAnalyzingPhoto] = useState(false);
+
+  const isOwner = user && user.role === 'owner';
 
   useEffect(() => {
-    // If user is not owner, ensure owner permissions for this portal view
-    if (user && user.role !== 'owner') {
-      quickSwitchRole('owner');
+    if (isOwner) {
+      loadOwnerData();
     }
-    loadOwnerData();
-  }, []);
+  }, [isOwner]);
 
   const loadOwnerData = async () => {
     setLoading(true);
@@ -77,6 +86,31 @@ export const OwnerPortal: React.FC = () => {
     }
   };
 
+  const handleOwnerLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthLoading(true);
+    setAuthError(null);
+    try {
+      await login(ownerEmail, ownerPassword);
+    } catch (err: any) {
+      setAuthError(err.message || 'Login failed. Please check contractor credentials.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleQuickOwnerLogin = async () => {
+    setAuthLoading(true);
+    setAuthError(null);
+    try {
+      await login('owner@cleanai.com', 'Owner@123');
+    } catch (err: any) {
+      setAuthError(err.message || 'Quick login failed.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!regForm.name || !regForm.address || !regForm.locality) {
@@ -84,8 +118,9 @@ export const OwnerPortal: React.FC = () => {
       return;
     }
 
+    setIsSubmittingReg(true);
     try {
-      await api.registerToilet(regForm);
+      await api.registerToilet(regForm as any);
       setShowRegModal(false);
       setRegForm({
         name: '',
@@ -98,46 +133,29 @@ export const OwnerPortal: React.FC = () => {
         facilities: ['Running Water', 'Washbasin', 'Western WC'],
         opening_hours: '06:00 - 23:00',
         accessibility: true,
-        access_type: 'public',
         contact_number: '+91-9812345678'
       });
       await loadOwnerData();
-      alert('Sanitation facility submitted! Status is now Pending Approval by municipal officers.');
+      alert('Sanitation facility submitted and added to your assigned facilities.');
     } catch (err: any) {
       alert(err.message || 'Registration failed');
+    } finally {
+      setIsSubmittingReg(false);
     }
   };
 
-  const handleMarkInProgress = async (taskId: string) => {
-    try {
-      await api.markTaskInProgress(taskId);
-      await loadOwnerData();
-    } catch (e: any) {
-      alert(e.message || 'Failed to update task');
-    }
-  };
-
-  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setAfterPhoto(file);
-      // Run optional AI preview on the after-cleaning photo
-      setIsAnalyzingPhoto(true);
-      try {
-        const result = await api.inspectImage(file);
-        setAfterPhotoAiResult(result);
-      } catch (err) {
-        console.warn('After-photo AI analysis notice:', err);
-      } finally {
-        setIsAnalyzingPhoto(false);
-      }
+      setPhotoPreview(URL.createObjectURL(file));
     }
   };
 
   const handleReportCompletionSubmit = async () => {
     if (!activeTaskForReport) return;
     if (!completionNotes.trim()) {
-      alert('Please enter cleaning notes describing the work completed.');
+      alert('Please enter cleaning notes describing the maintenance completed.');
       return;
     }
 
@@ -152,9 +170,9 @@ export const OwnerPortal: React.FC = () => {
       setActiveTaskForReport(null);
       setCompletionNotes('');
       setAfterPhoto(null);
-      setAfterPhotoAiResult(null);
+      setPhotoPreview(null);
       await loadOwnerData();
-      alert('Cleaning completion reported! Status updated to Verification Pending for municipal officer review.');
+      alert('Cleaning completion reported! Status is now Verification Pending for municipal officer review. Note that official verified status only updates when confirmed by an officer.');
     } catch (err: any) {
       alert(err.message || 'Report submission failed');
     } finally {
@@ -162,474 +180,491 @@ export const OwnerPortal: React.FC = () => {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-[#050505] text-[#F5F5F7] py-10 selection:bg-[#2997FF]/30">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
-        
-        {/* Header Section */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-b border-[#262626]/80 pb-8">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#111111] border border-[#262626] text-[#2997FF] text-[11px] font-semibold tracking-wider uppercase mb-3">
-              <Building2 size={13} />
-              <span>Facility Operations Portal</span>
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'Clean':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            <CheckCircle2 size={12} />
+            Clean
+          </span>
+        );
+      case 'Needs Cleaning':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+            <AlertTriangle size={12} />
+            Needs Cleaning
+          </span>
+        );
+      case 'Under Maintenance':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20">
+            Under Maintenance
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-zinc-800 text-zinc-300 border border-zinc-700">
+            {status}
+          </span>
+        );
+    }
+  };
+
+  // If not logged in as owner, show secure Owner Login screen
+  if (!isOwner) {
+    return (
+      <div className="max-w-md mx-auto px-4 py-16 space-y-6 text-[#F5F5F7]">
+        <div className="text-center space-y-2">
+          <div className="w-12 h-12 rounded-2xl bg-[#141414] border border-[#262626] flex items-center justify-center mx-auto text-[#F5F5F7]">
+            <Building2 size={26} />
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight">Facility Owner Access</h1>
+          <p className="text-xs text-[#A1A1A6]">
+            Secure portal for toilet owners and sanitation maintenance contractors.
+          </p>
+        </div>
+
+        <div className="bg-[#0D0D0D] border border-[#262626] rounded-2xl p-6 space-y-5 shadow-xl">
+          {authError && (
+            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2">
+              <AlertCircle size={14} />
+              <span>{authError}</span>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-[#F5F5F7]">
-              Facility Owner & Contractor Hub
-            </h1>
-            <p className="text-sm text-[#86868B] mt-1.5 max-w-2xl leading-relaxed">
-              Register commercial sanitation points, resolve dispatched municipal cleaning tasks, and submit verified photo evidence.
-            </p>
+          )}
+
+          <form onSubmit={handleOwnerLogin} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-[#A1A1A6]">Owner / Contractor Email</label>
+              <div className="relative">
+                <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6E6E73]" />
+                <input
+                  type="email"
+                  required
+                  value={ownerEmail}
+                  onChange={(e) => setOwnerEmail(e.target.value)}
+                  placeholder="owner@cleanai.com"
+                  className="w-full pl-10 pr-3.5 py-2.5 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] placeholder-[#6E6E73] focus:border-[#F5F5F7]/40 focus:outline-hidden"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-[#A1A1A6]">Password</label>
+              <div className="relative">
+                <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6E6E73]" />
+                <input
+                  type="password"
+                  required
+                  value={ownerPassword}
+                  onChange={(e) => setOwnerPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full pl-10 pr-3.5 py-2.5 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] placeholder-[#6E6E73] focus:border-[#F5F5F7]/40 focus:outline-hidden"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={authLoading}
+              className="w-full py-2.5 rounded-xl text-xs font-semibold text-[#050505] bg-[#F5F5F7] hover:bg-white transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            >
+              {authLoading ? (
+                <>
+                  <Loader2 size={14} className="animate-spin text-[#050505]" />
+                  <span>Verifying Credentials...</span>
+                </>
+              ) : (
+                <span>Log In as Facility Owner</span>
+              )}
+            </button>
+          </form>
+
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-[#262626]"></div>
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="px-2 bg-[#0D0D0D] text-[#6E6E73]">Quick Access</span>
+            </div>
           </div>
 
           <button
-            onClick={() => setShowRegModal(true)}
-            className="apple-button-primary self-start sm:self-auto flex items-center gap-2 py-3 px-5 shadow-lg shadow-[#2997FF]/20"
+            onClick={handleQuickOwnerLogin}
+            disabled={authLoading}
+            className="w-full py-2.5 rounded-xl text-xs font-semibold bg-[#161616] hover:bg-[#202020] text-[#F5F5F7] border border-[#262626] transition-all flex items-center justify-center gap-2 cursor-pointer"
           >
-            <PlusCircle size={16} />
-            <span>Register Facility</span>
+            <Building2 size={14} className="text-[#2997FF]" />
+            <span>One-Click Owner Demo Login (owner@cleanai.com)</span>
           </button>
         </div>
+      </div>
+    );
+  }
 
-        {/* Verification Policy Card */}
-        <div className="p-5 rounded-2xl bg-[#0D0D0D] border border-[#262626] flex items-start gap-4">
-          <div className="p-2.5 rounded-xl bg-[#2997FF]/10 text-[#2997FF] shrink-0 mt-0.5">
-            <Info size={18} />
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 text-[#F5F5F7]">
+      
+      {/* Top Banner */}
+      <div className="bg-[#0D0D0D] border border-[#262626] rounded-2xl p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xl">
+        <div className="space-y-1.5">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#161616] border border-[#262626] text-xs font-medium text-[#A1A1A6]">
+            <Building2 size={14} className="text-[#2997FF]" />
+            <span>Facility Owner & Contractor Access</span>
           </div>
-          <div className="space-y-1 text-xs leading-relaxed">
-            <p className="font-semibold text-[#F5F5F7] text-sm flex items-center gap-2">
-              Municipal Verification Integrity Protocol
-            </p>
-            <p className="text-[#86868B]">
-              When you submit a completed cleaning report, the public status switches to{' '}
-              <span className="font-semibold text-[#FF9F0A] bg-[#FF9F0A]/10 border border-[#FF9F0A]/20 px-2 py-0.5 rounded-md mx-1">
-                Verification Pending
-              </span>{' '}
-              instead of an automatic Clean certification. A municipal officer must review and confirm photo evidence before the facility is certified Clean for citizens.
-            </p>
-          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#F5F5F7]">
+            Owner Portal
+          </h1>
+          <p className="text-xs sm:text-sm text-[#A1A1A6]">
+            Logged in as <strong className="text-[#F5F5F7]">{user?.full_name || 'Facility Contractor'}</strong> ({user?.organization || 'Sanitation Services'})
+          </p>
         </div>
 
-        {/* Active Cleaning Orders */}
-        <div className="apple-glass-card rounded-3xl overflow-hidden">
-          <div className="p-6 border-b border-[#262626] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2.5">
-                <div className="w-2 h-2 rounded-full bg-[#FF9F0A] animate-pulse" />
-                <h3 className="font-semibold text-lg text-[#F5F5F7]">
-                  Assigned Cleaning Orders ({tasks.length})
-                </h3>
-              </div>
-              <p className="text-xs text-[#86868B] mt-1">
-                Tasks dispatched by municipal authorities requiring cleaning remediation.
-              </p>
-            </div>
-            <span className="text-[11px] font-mono text-[#86868B] px-3 py-1 rounded-full bg-[#161616] border border-[#262626] self-start sm:self-auto">
-              Real-time Work Queue
-            </span>
-          </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowRegModal(true)}
+            className="px-4 py-2 rounded-xl text-xs font-semibold text-[#050505] bg-[#F5F5F7] hover:bg-white transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+          >
+            <PlusCircle size={14} />
+            <span>Register Facility</span>
+          </button>
+          <button
+            onClick={() => logout()}
+            className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 transition-colors flex items-center gap-1.5 cursor-pointer"
+          >
+            <LogOut size={13} />
+            <span>Log Out</span>
+          </button>
+        </div>
+      </div>
 
-          <div className="divide-y divide-[#262626]">
-            {loading ? (
-              <div className="py-14 text-center text-[#86868B] space-y-3">
-                <Loader2 size={24} className="animate-spin mx-auto text-[#2997FF]" />
-                <p className="text-xs">Loading operational task queue...</p>
-              </div>
-            ) : tasks.length === 0 ? (
-              <div className="py-14 text-center text-[#86868B]">
-                <CheckCircle2 size={32} className="mx-auto text-[#30D158] opacity-80 mb-2" />
-                <p className="text-sm font-medium text-[#F5F5F7]">All Clean — No Pending Tasks</p>
-                <p className="text-xs mt-1">There are currently no active cleaning remediation tasks assigned.</p>
-              </div>
-            ) : (
-              tasks.map((task) => (
+      {/* Critical Status Rule Notice */}
+      <div className="bg-[#121212] border border-[#262626] rounded-xl p-4 flex items-start gap-3 text-xs text-[#A1A1A6]">
+        <Info size={16} className="text-[#2997FF] shrink-0 mt-0.5" />
+        <p className="leading-relaxed">
+          <strong className="text-[#F5F5F7]">Important Rule:</strong> Owner-reported cleaning completions update maintenance records for municipal review. However, the public verified status will <span className="text-[#F5F5F7] underline">only</span> change once certified by an authorized municipal health officer.
+        </p>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex items-center gap-2 border-b border-[#262626] pb-3 text-xs font-medium">
+        <button
+          onClick={() => setActiveTab('toilets')}
+          className={`px-4 py-2 rounded-xl transition-all cursor-pointer ${
+            activeTab === 'toilets'
+              ? 'bg-[#F5F5F7] text-[#050505] font-semibold'
+              : 'text-[#A1A1A6] hover:text-[#F5F5F7] hover:bg-[#141414]'
+          }`}
+        >
+          My Facilities ({toilets.length})
+        </button>
+
+        <button
+          onClick={() => setActiveTab('tasks')}
+          className={`px-4 py-2 rounded-xl transition-all cursor-pointer ${
+            activeTab === 'tasks'
+              ? 'bg-[#F5F5F7] text-[#050505] font-semibold'
+              : 'text-[#A1A1A6] hover:text-[#F5F5F7] hover:bg-[#141414]'
+          }`}
+        >
+          Cleaning & Maintenance Tasks ({tasks.length})
+        </button>
+      </div>
+
+      {/* TAB 1: MY FACILITIES */}
+      {activeTab === 'toilets' && (
+        <div className="space-y-4">
+          {loading ? (
+            <div className="py-20 text-center space-y-3">
+              <Loader2 size={24} className="animate-spin mx-auto text-[#F5F5F7]" />
+              <p className="text-xs text-[#A1A1A6]">Loading assigned facilities...</p>
+            </div>
+          ) : toilets.length === 0 ? (
+            <div className="bg-[#0D0D0D] border border-[#262626] rounded-2xl p-12 text-center space-y-3">
+              <p className="text-xs text-[#A1A1A6]">You have no facilities currently registered under your account.</p>
+              <button
+                onClick={() => setShowRegModal(true)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#F5F5F7] text-[#050505] hover:bg-white cursor-pointer"
+              >
+                Register Your First Facility
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {toilets.map((toilet) => (
+                <div
+                  key={toilet.id}
+                  className="bg-[#0D0D0D] border border-[#262626] rounded-2xl p-5 space-y-4 shadow-lg"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="text-base font-semibold text-[#F5F5F7]">{toilet.name}</h3>
+                      <div className="flex items-center gap-1.5 text-xs text-[#A1A1A6] mt-0.5">
+                        <MapPin size={12} className="text-[#6E6E73]" />
+                        <span>{toilet.locality}, {toilet.city}</span>
+                      </div>
+                    </div>
+                    {getStatusBadge(toilet.verified_status)}
+                  </div>
+
+                  <p className="text-xs text-[#8E8E93] line-clamp-2">{toilet.address}</p>
+
+                  <div className="pt-3 border-t border-[#1C1C1E] flex items-center justify-between text-xs text-[#A1A1A6]">
+                    <div>
+                      Last Inspection: <strong className="text-[#F5F5F7]">{toilet.last_inspected_at ? new Date(toilet.last_inspected_at).toLocaleDateString() : 'Pending'}</strong>
+                    </div>
+                    <div>
+                      Citizen Complaints: <span className="font-semibold text-amber-400">{toilet.total_complaints || 0}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 2: CLEANING TASKS & REPORTING */}
+      {activeTab === 'tasks' && (
+        <div className="space-y-4">
+          {tasks.length === 0 ? (
+            <div className="bg-[#0D0D0D] border border-[#262626] rounded-2xl p-12 text-center text-xs text-[#A1A1A6]">
+              No active cleaning tasks assigned.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {tasks.map((task) => (
                 <div
                   key={task.id}
-                  className="p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-6 hover:bg-[#161616]/40 transition-colors"
+                  className="bg-[#0D0D0D] border border-[#262626] rounded-2xl p-5 space-y-3 shadow-lg"
                 >
-                  <div className="space-y-2.5 max-w-2xl">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span
-                        className={`text-[10px] font-semibold tracking-wider uppercase px-2.5 py-0.5 rounded-full border ${
-                          task.priority === 'High'
-                            ? 'bg-[#FF453A]/10 text-[#FF453A] border-[#FF453A]/25'
-                            : 'bg-[#FF9F0A]/10 text-[#FF9F0A] border-[#FF9F0A]/25'
-                        }`}
-                      >
-                        {task.priority} Priority
-                      </span>
-                      <span className="text-[11px] text-[#86868B] font-mono">
-                        Dispatched {new Date(task.created_at).toLocaleDateString()}
-                      </span>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#1C1C1E] pb-3">
+                    <div>
+                      <h4 className="text-sm font-semibold text-[#F5F5F7]">{task.toilet_name}</h4>
+                      <div className="text-[11px] text-[#6E6E73] mt-0.5">
+                        Assigned on {new Date(task.created_at).toLocaleDateString()} • Priority: <span className="font-semibold text-rose-400">{task.priority}</span>
+                      </div>
                     </div>
 
-                    <h4 className="font-semibold text-base text-[#F5F5F7]">
-                      {task.toilet_name}
-                    </h4>
-                    <p className="text-xs text-[#A1A1A6] leading-relaxed">
-                      {task.notes}
-                    </p>
+                    <div>
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                        task.status === 'Completed' || task.status === 'Verified'
+                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                          : task.status === 'Cleaning Reported' || task.status === 'Verification Pending'
+                          ? 'bg-sky-500/10 text-sky-400 border border-sky-500/20'
+                          : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                      }`}>
+                        {task.status}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="text-xs space-y-2">
+                    {task.notes && (
+                      <p className="p-3 bg-[#141414] rounded-xl text-[#A1A1A6] border border-[#262626]">
+                        {task.notes}
+                      </p>
+                    )}
 
                     {task.completion_notes && (
-                      <div className="text-xs text-[#30D158] bg-[#30D158]/10 p-3 rounded-xl border border-[#30D158]/20 mt-2">
-                        <span className="font-semibold block text-[11px] uppercase tracking-wider text-[#30D158]/80 mb-0.5">
-                          Reported Completion Work:
-                        </span>
-                        "{task.completion_notes}"
+                      <div className="p-2.5 rounded-lg bg-[#161616] text-[#A1A1A6] text-[11px]">
+                        <strong>Reported completion notes:</strong> {task.completion_notes}
                       </div>
                     )}
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-3 shrink-0">
-                    {task.status === 'Pending' && (
-                      <button
-                        onClick={() => handleMarkInProgress(task.id)}
-                        className="px-4 py-2 bg-[#1A1A1A] hover:bg-[#262626] text-[#F5F5F7] text-xs font-semibold rounded-xl border border-[#333333] transition-colors"
-                      >
-                        Acknowledge & Begin Work
-                      </button>
-                    )}
-
-                    {task.status === 'In Progress' && (
+                  {/* Report Button */}
+                  <div className="pt-2 flex justify-end">
+                    {task.status !== 'Cleaning Reported' && task.status !== 'Completed' && task.status !== 'Verified' && (
                       <button
                         onClick={() => setActiveTaskForReport(task)}
-                        className="apple-button-primary px-4 py-2 text-xs flex items-center gap-2"
+                        className="px-4 py-2 rounded-xl text-xs font-semibold text-[#050505] bg-[#F5F5F7] hover:bg-white transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
                       >
-                        <Camera size={14} />
-                        <span>Report Completion</span>
+                        <Check size={14} />
+                        <span>Report Cleaning Completed</span>
                       </button>
                     )}
-
-                    <span
-                      className={`text-xs font-semibold px-3 py-1 rounded-full border ${
-                        task.status === 'Verified'
-                          ? 'bg-[#30D158]/10 text-[#30D158] border-[#30D158]/20'
-                          : task.status === 'Cleaning Reported'
-                          ? 'bg-[#2997FF]/10 text-[#2997FF] border-[#2997FF]/20'
-                          : 'bg-[#FF9F0A]/10 text-[#FF9F0A] border-[#FF9F0A]/20'
-                      }`}
-                    >
-                      {task.status}
-                    </span>
                   </div>
                 </div>
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
+      )}
 
-        {/* Owner's Registered Facilities Table */}
-        <div className="apple-glass-card rounded-3xl overflow-hidden">
-          <div className="p-6 border-b border-[#262626] flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold text-lg text-[#F5F5F7]">
-                Your Managed Toilet Facilities ({toilets.length})
+      {/* Report Cleaning Modal */}
+      {activeTaskForReport && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-[#121212] border border-[#262626] rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-[#F5F5F7]">
+                Report Cleaning: {activeTaskForReport.toilet_name}
               </h3>
-              <p className="text-xs text-[#86868B] mt-1">
-                Official registration status and live municipal cleanliness certifications.
-              </p>
+              <button
+                onClick={() => {
+                  setActiveTaskForReport(null);
+                  setPhotoPreview(null);
+                  setAfterPhoto(null);
+                }}
+                className="text-[#6E6E73] hover:text-[#F5F5F7]"
+              >
+                <X size={16} />
+              </button>
             </div>
-          </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="bg-[#0A0A0A] border-b border-[#262626] text-[#86868B] font-semibold text-[11px] uppercase tracking-wider">
-                  <th className="py-4 px-6">Facility Details</th>
-                  <th className="py-4 px-6">Registration Status</th>
-                  <th className="py-4 px-6">Verified Public Status</th>
-                  <th className="py-4 px-6">Operating Hours</th>
-                  <th className="py-4 px-6">Last Inspected</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#262626]">
-                {toilets.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="text-center py-12 text-[#86868B]">
-                      No facilities registered under this account yet. Click "Register Facility" above to start.
-                    </td>
-                  </tr>
+            <p className="text-xs text-[#A1A1A6]">
+              Enter the work completed by the sanitation staff. Note that municipal verified status will only change after municipal officer inspection.
+            </p>
+
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-[#A1A1A6]">
+                Cleaning Notes <span className="text-rose-400">*</span>
+              </label>
+              <textarea
+                rows={3}
+                required
+                value={completionNotes}
+                onChange={(e) => setCompletionNotes(e.target.value)}
+                placeholder="e.g. Floors scrubbed with disinfectant, soap dispensers refilled, water pressure restored."
+                className="w-full px-3 py-2 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] focus:outline-hidden"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-[#A1A1A6]">
+                After-Cleaning Photo (Optional)
+              </label>
+              {photoPreview ? (
+                <div className="relative inline-block border border-[#333333] rounded-lg overflow-hidden">
+                  <img src={photoPreview} alt="Preview" className="w-36 h-24 object-cover" />
+                  <button
+                    onClick={() => {
+                      setAfterPhoto(null);
+                      setPhotoPreview(null);
+                    }}
+                    className="absolute top-1 right-1 p-0.5 rounded-full bg-black/70 text-white"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex items-center gap-2 p-3 border border-dashed border-[#262626] rounded-xl text-xs text-[#A1A1A6] hover:bg-[#161616] cursor-pointer">
+                  <Camera size={16} className="text-[#6E6E73]" />
+                  <span>Attach proof photo</span>
+                  <input type="file" accept="image/*" onChange={handlePhotoSelect} className="hidden" />
+                </label>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                onClick={() => {
+                  setActiveTaskForReport(null);
+                  setPhotoPreview(null);
+                  setAfterPhoto(null);
+                }}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium text-[#A1A1A6] hover:text-[#F5F5F7] bg-[#161616] cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={isSubmittingReport}
+                onClick={handleReportCompletionSubmit}
+                className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-[#F5F5F7] hover:bg-white text-[#050505] transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+              >
+                {isSubmittingReport ? (
+                  <>
+                    <Loader2 size={13} className="animate-spin text-[#050505]" />
+                    <span>Submitting...</span>
+                  </>
                 ) : (
-                  toilets.map((toilet) => (
-                    <tr key={toilet.id} className="hover:bg-[#161616]/40 transition-colors">
-                      <td className="py-4 px-6">
-                        <p className="font-semibold text-[#F5F5F7] text-sm">{toilet.name}</p>
-                        <p className="text-[#86868B] text-[11px] mt-0.5">
-                          {toilet.address}, {toilet.locality}
-                        </p>
-                      </td>
-
-                      <td className="py-4 px-6">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
-                            toilet.registration_status === 'Approved'
-                              ? 'bg-[#30D158]/10 text-[#30D158] border-[#30D158]/20'
-                              : toilet.registration_status === 'Pending Approval'
-                              ? 'bg-[#FF9F0A]/10 text-[#FF9F0A] border-[#FF9F0A]/20'
-                              : 'bg-[#FF453A]/10 text-[#FF453A] border-[#FF453A]/20'
-                          }`}
-                        >
-                          {toilet.registration_status}
-                        </span>
-                      </td>
-
-                      <td className="py-4 px-6">
-                        <StatusBadge status={toilet.verified_status} isStale={toilet.is_stale} size="sm" />
-                      </td>
-
-                      <td className="py-4 px-6 text-[#A1A1A6]">
-                        {toilet.opening_hours || '24x7'}
-                      </td>
-
-                      <td className="py-4 px-6 font-mono text-[#86868B]">
-                        {toilet.last_inspected_at
-                          ? new Date(toilet.last_inspected_at).toLocaleDateString()
-                          : 'No inspections yet'}
-                      </td>
-                    </tr>
-                  ))
+                  <span>Submit Cleaning Report</span>
                 )}
-              </tbody>
-            </table>
+              </button>
+            </div>
           </div>
         </div>
+      )}
 
-        {/* Registration Modal */}
-        {showRegModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-2xl overflow-y-auto">
-            <div className="w-full max-w-2xl bg-[#0D0D0D] border border-[#262626] rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl my-8">
-              <div className="flex items-center justify-between border-b border-[#262626] pb-5">
-                <div>
-                  <h3 className="text-xl font-semibold text-[#F5F5F7]">Register Public Facility</h3>
-                  <p className="text-xs text-[#86868B] mt-1">
-                    Submit facility coordinates and amenities for official municipal inspection.
-                  </p>
-                </div>
-                <button
-                  onClick={() => setShowRegModal(false)}
-                  className="w-8 h-8 rounded-full bg-[#1A1A1A] hover:bg-[#262626] text-[#A1A1A6] hover:text-[#F5F5F7] flex items-center justify-center transition-colors"
-                >
-                  ✕
-                </button>
-              </div>
-
-              <form onSubmit={handleRegisterSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-[#A1A1A6] mb-1.5">Facility Name *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Metro Gate 3 Public Convenience"
-                      value={regForm.name}
-                      onChange={(e) => setRegForm({ ...regForm, name: e.target.value })}
-                      className="w-full text-xs p-3 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7] placeholder-[#6E6E73] focus:border-[#2997FF] focus:outline-hidden transition-colors"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-[#A1A1A6] mb-1.5">Locality / Area *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Connaught Place, Karol Bagh"
-                      value={regForm.locality}
-                      onChange={(e) => setRegForm({ ...regForm, locality: e.target.value })}
-                      className="w-full text-xs p-3 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7] placeholder-[#6E6E73] focus:border-[#2997FF] focus:outline-hidden transition-colors"
-                    />
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <label className="block text-xs font-semibold text-[#A1A1A6] mb-1.5">Full Street Address *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Near Metro Station Exit 2, Outer Ring Road"
-                      value={regForm.address}
-                      onChange={(e) => setRegForm({ ...regForm, address: e.target.value })}
-                      className="w-full text-xs p-3 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7] placeholder-[#6E6E73] focus:border-[#2997FF] focus:outline-hidden transition-colors"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-[#A1A1A6] mb-1.5">GPS Latitude *</label>
-                    <input
-                      type="number"
-                      step="0.0001"
-                      required
-                      value={regForm.latitude}
-                      onChange={(e) => setRegForm({ ...regForm, latitude: parseFloat(e.target.value) || 0 })}
-                      className="w-full text-xs p-3 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7] font-mono focus:border-[#2997FF] focus:outline-hidden transition-colors"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-[#A1A1A6] mb-1.5">GPS Longitude *</label>
-                    <input
-                      type="number"
-                      step="0.0001"
-                      required
-                      value={regForm.longitude}
-                      onChange={(e) => setRegForm({ ...regForm, longitude: parseFloat(e.target.value) || 0 })}
-                      className="w-full text-xs p-3 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7] font-mono focus:border-[#2997FF] focus:outline-hidden transition-colors"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-[#A1A1A6] mb-1.5">Access Type</label>
-                    <select
-                      value={regForm.access_type}
-                      onChange={(e) => setRegForm({ ...regForm, access_type: e.target.value as any })}
-                      className="w-full text-xs p-3 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7] focus:border-[#2997FF] focus:outline-hidden transition-colors"
-                    >
-                      <option value="public">Free Public Facility</option>
-                      <option value="paid">Pay & Use Facility</option>
-                      <option value="private">Commercial Private Restroom</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-[#A1A1A6] mb-1.5">Opening Hours</label>
-                    <input
-                      type="text"
-                      value={regForm.opening_hours}
-                      onChange={(e) => setRegForm({ ...regForm, opening_hours: e.target.value })}
-                      className="w-full text-xs p-3 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7] focus:border-[#2997FF] focus:outline-hidden transition-colors"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-[#A1A1A6] mb-1.5">Description & Details</label>
-                  <textarea
-                    value={regForm.description}
-                    onChange={(e) => setRegForm({ ...regForm, description: e.target.value })}
-                    placeholder="Describe fixtures, regular cleaning protocols, ventilation details..."
-                    rows={2}
-                    className="w-full text-xs p-3 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7] placeholder-[#6E6E73] focus:border-[#2997FF] focus:outline-hidden transition-colors"
-                  />
-                </div>
-
-                <div className="flex items-center gap-2.5 pt-1">
-                  <input
-                    type="checkbox"
-                    id="acc-check"
-                    checked={regForm.accessibility}
-                    onChange={(e) => setRegForm({ ...regForm, accessibility: e.target.checked })}
-                    className="w-4 h-4 rounded-sm bg-[#161616] border-[#262626] text-[#2997FF] focus:ring-0 focus:ring-offset-0"
-                  />
-                  <label htmlFor="acc-check" className="text-xs font-medium text-[#A1A1A6]">
-                    Wheelchair Ramp & Handicap Accessible
-                  </label>
-                </div>
-
-                <div className="flex justify-end gap-3 pt-5 border-t border-[#262626]">
-                  <button
-                    type="button"
-                    onClick={() => setShowRegModal(false)}
-                    className="px-5 py-2.5 text-xs font-semibold text-[#86868B] hover:text-[#F5F5F7] hover:bg-[#1A1A1A] rounded-xl transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="apple-button-primary px-6 py-2.5 text-xs font-semibold"
-                  >
-                    Submit for Approval
-                  </button>
-                </div>
-              </form>
+      {/* Register Facility Modal */}
+      {showRegModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-[#121212] border border-[#262626] rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl my-8">
+            <div className="flex items-center justify-between border-b border-[#262626] pb-3">
+              <h3 className="text-sm font-semibold text-[#F5F5F7]">Register Public Facility</h3>
+              <button onClick={() => setShowRegModal(false)} className="text-[#6E6E73] hover:text-[#F5F5F7]">
+                <X size={16} />
+              </button>
             </div>
-          </div>
-        )}
 
-        {/* Report Cleaning Modal */}
-        {activeTaskForReport && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-2xl">
-            <div className="w-full max-w-lg bg-[#0D0D0D] border border-[#262626] rounded-3xl p-6 sm:p-7 space-y-5 shadow-2xl">
-              <div>
-                <h3 className="font-semibold text-lg text-[#F5F5F7]">Report Cleaning Remediation</h3>
-                <p className="text-xs text-[#86868B] mt-0.5">Facility: {activeTaskForReport.toilet_name}</p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-[#A1A1A6] mb-1.5">Cleaning Action Notes *</label>
-                <textarea
-                  required
-                  value={completionNotes}
-                  onChange={(e) => setCompletionNotes(e.target.value)}
-                  placeholder="Detail work performed (e.g., floors disinfected, washbasin scrubbed, soap and sanitizers replenished)..."
-                  rows={3}
-                  className="w-full text-xs p-3 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7] placeholder-[#6E6E73] focus:border-[#2997FF] focus:outline-hidden transition-colors"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-[#A1A1A6] mb-1.5">
-                  After-Cleaning Photograph (Optional AI Preview Assessment)
-                </label>
+            <form onSubmit={handleRegisterSubmit} className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-[#A1A1A6]">Facility Name *</label>
                 <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  onChange={handlePhotoSelect}
-                  className="w-full text-xs text-[#86868B] file:mr-3 file:py-2.5 file:px-4 file:rounded-xl file:border file:border-[#262626] file:text-xs file:font-semibold file:bg-[#161616] file:text-[#2997FF] hover:file:bg-[#202020] cursor-pointer"
+                  type="text"
+                  required
+                  value={regForm.name}
+                  onChange={(e) => setRegForm({ ...regForm, name: e.target.value })}
+                  placeholder="e.g. Metro Station Gate 2 Restroom"
+                  className="w-full px-3 py-2 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] focus:outline-hidden"
                 />
               </div>
 
-              {isAnalyzingPhoto && (
-                <div className="p-3 rounded-xl bg-[#2997FF]/10 border border-[#2997FF]/20 text-xs text-[#2997FF] flex items-center gap-2">
-                  <Loader2 size={15} className="animate-spin" />
-                  <span>Analyzing after-cleaning photograph with YOLO model...</span>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-[#A1A1A6]">City *</label>
+                  <input
+                    type="text"
+                    required
+                    value={regForm.city}
+                    onChange={(e) => setRegForm({ ...regForm, city: e.target.value })}
+                    className="w-full px-3 py-2 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] focus:outline-hidden"
+                  />
                 </div>
-              )}
-
-              {afterPhotoAiResult && (
-                <div className="p-4 bg-[#111111] rounded-2xl border border-[#262626] text-xs space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <p className="font-semibold text-[#F5F5F7] flex items-center gap-1.5">
-                      <Sparkles size={14} className="text-[#2997FF]" />
-                      Model Assessment
-                    </p>
-                    <span className="font-mono text-[10px] text-[#30D158] bg-[#30D158]/10 px-2 py-0.5 rounded-full border border-[#30D158]/20">
-                      {afterPhotoAiResult.ai_recommendation}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-[#86868B]">{afterPhotoAiResult.message}</p>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-[#A1A1A6]">Locality *</label>
+                  <input
+                    type="text"
+                    required
+                    value={regForm.locality}
+                    onChange={(e) => setRegForm({ ...regForm, locality: e.target.value })}
+                    className="w-full px-3 py-2 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] focus:outline-hidden"
+                  />
                 </div>
-              )}
+              </div>
 
-              <div className="flex justify-end gap-3 pt-3 border-t border-[#262626]">
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-[#A1A1A6]">Address *</label>
+                <input
+                  type="text"
+                  required
+                  value={regForm.address}
+                  onChange={(e) => setRegForm({ ...regForm, address: e.target.value })}
+                  className="w-full px-3 py-2 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] focus:outline-hidden"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#262626]">
                 <button
                   type="button"
-                  onClick={() => {
-                    setActiveTaskForReport(null);
-                    setAfterPhoto(null);
-                    setAfterPhotoAiResult(null);
-                  }}
-                  className="px-4 py-2 text-xs font-semibold text-[#86868B] hover:text-[#F5F5F7] hover:bg-[#1A1A1A] rounded-xl transition-colors"
+                  onClick={() => setShowRegModal(false)}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium text-[#A1A1A6] bg-[#161616] cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
-                  type="button"
-                  onClick={handleReportCompletionSubmit}
-                  disabled={isSubmittingReport}
-                  className="apple-button-primary px-5 py-2.5 text-xs font-semibold flex items-center gap-2 disabled:opacity-50"
+                  type="submit"
+                  disabled={isSubmittingReg}
+                  className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-[#F5F5F7] hover:bg-white text-[#050505] cursor-pointer disabled:opacity-50"
                 >
-                  {isSubmittingReport ? (
-                    <>
-                      <Loader2 size={15} className="animate-spin" />
-                      <span>Submitting...</span>
-                    </>
-                  ) : (
-                    <span>Submit Cleaning Report</span>
-                  )}
+                  {isSubmittingReg ? 'Submitting...' : 'Register Toilet'}
                 </button>
               </div>
-            </div>
+            </form>
           </div>
-        )}
+        </div>
+      )}
 
-      </div>
     </div>
   );
 };

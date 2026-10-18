@@ -50,16 +50,16 @@ export const LoginPage: React.FC = () => {
           role,
           phone: phone || undefined
         });
-        if (role === 'officer') navigate('/municipal');
+        if (role === 'officer') navigate('/authority');
         else if (role === 'owner') navigate('/owner');
-        else navigate('/customer');
+        else navigate('/toilets');
       } else {
         await login(email, password);
         const profile = await api.getMe().catch(() => null);
         const userRole = profile?.role;
-        if (userRole === 'officer') navigate('/municipal');
+        if (userRole === 'officer') navigate('/authority');
         else if (userRole === 'owner') navigate('/owner');
-        else navigate('/customer');
+        else navigate('/toilets');
       }
     } catch (err: any) {
       const msg = err?.message || '';
@@ -78,7 +78,7 @@ export const LoginPage: React.FC = () => {
     setError(null);
     let demoEmail = 'officer@cleanai.gov';
     let demoPass = 'Officer@123';
-    let target = '/municipal';
+    let target = '/authority';
 
     if (userRole === 'owner') {
       demoEmail = 'owner@cleanai.com';
@@ -87,7 +87,7 @@ export const LoginPage: React.FC = () => {
     } else if (userRole === 'citizen') {
       demoEmail = 'citizen@cleanai.org';
       demoPass = 'Citizen@123';
-      target = '/customer';
+      target = '/toilets';
     }
 
     try {
