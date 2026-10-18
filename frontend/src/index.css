@@ -155,65 +155,96 @@
   background: #3a3a3c;
 }
 
-/* Premium Apple-style Preloader Keyframes */
-@keyframes preloader-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-@keyframes preloader-spin-reverse {
-  from { transform: rotate(360deg); }
-  to { transform: rotate(0deg); }
-}
-
-@keyframes preloader-pulse-glow {
+/* Ultra-Premium Cinematic Glass Orb & Orbit Keyframes */
+@keyframes orb-breathe {
   0%, 100% {
-    opacity: 0.35;
-    transform: scale(0.96);
+    transform: scale(1) translateZ(0);
+    filter: drop-shadow(0 0 25px rgba(41, 151, 255, 0.25));
   }
   50% {
-    opacity: 0.85;
-    transform: scale(1.04);
+    transform: scale(1.025) translateZ(0);
+    filter: drop-shadow(0 0 40px rgba(41, 151, 255, 0.42));
   }
 }
 
-@keyframes preloader-beam-sweep {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-@keyframes preloader-particle {
-  0%, 100% {
-    opacity: 0.2;
-    transform: scale(0.8);
+@keyframes orb-sheen-sweep {
+  0% {
+    transform: translateX(-120%) rotate(25deg);
+    opacity: 0;
   }
-  50% {
-    opacity: 1;
-    transform: scale(1.4);
-    filter: drop-shadow(0 0 6px #2997FF);
+  30% {
+    opacity: 0.6;
+  }
+  70% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateX(140%) rotate(25deg);
+    opacity: 0;
   }
 }
 
-.animate-preloader-spin {
-  animation: preloader-spin 12s linear infinite;
-  transform-origin: center;
+@keyframes orbit-rotate-1 {
+  from {
+    transform: rotateX(68deg) rotateY(16deg) rotateZ(0deg);
+  }
+  to {
+    transform: rotateX(68deg) rotateY(16deg) rotateZ(360deg);
+  }
 }
 
-.animate-preloader-spin-fast {
-  animation: preloader-spin 6s linear infinite;
-  transform-origin: center;
+@keyframes orbit-rotate-2 {
+  from {
+    transform: rotateX(60deg) rotateY(-24deg) rotateZ(0deg);
+  }
+  to {
+    transform: rotateX(60deg) rotateY(-24deg) rotateZ(-360deg);
+  }
 }
 
-.animate-preloader-spin-reverse {
-  animation: preloader-spin-reverse 10s linear infinite;
-  transform-origin: center;
+@keyframes orbit-rotate-3 {
+  from {
+    transform: rotateX(75deg) rotateY(0deg) rotateZ(0deg);
+  }
+  to {
+    transform: rotateX(75deg) rotateY(0deg) rotateZ(360deg);
+  }
 }
 
-.animate-preloader-beam {
-  animation: preloader-beam-sweep 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-  transform-origin: center;
+@keyframes pulse-wave-expand {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.75);
+    opacity: 0;
+  }
 }
 
-.animate-preloader-glow {
-  animation: preloader-pulse-glow 3s ease-in-out infinite;
+.animate-orb-breathe {
+  animation: orb-breathe 4.5s ease-in-out infinite;
+}
+
+.animate-sheen-sweep {
+  animation: orb-sheen-sweep 2.2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+.animate-orbit-1 {
+  animation: orbit-rotate-1 18s linear infinite;
+  transform-style: preserve-3d;
+}
+
+.animate-orbit-2 {
+  animation: orbit-rotate-2 24s linear infinite;
+  transform-style: preserve-3d;
+}
+
+.animate-orbit-3 {
+  animation: orbit-rotate-3 14s linear infinite;
+  transform-style: preserve-3d;
+}
+
+.animate-pulse-wave {
+  animation: pulse-wave-expand 1.8s cubic-bezier(0.16, 1, 0.3, 1) infinite;
 }
