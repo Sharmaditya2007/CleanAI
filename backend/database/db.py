@@ -108,7 +108,7 @@ class DatabaseManager:
                 "role": "officer",
                 "hashed_password": hash_password("Officer@123"),
                 "phone": "+91-9876543210",
-                "organization": "Delhi Municipal Corporation",
+                "organization": "Municipal Health & Sanitation Department",
                 "is_active": True,
                 "created_at": datetime.utcnow().isoformat()
             }

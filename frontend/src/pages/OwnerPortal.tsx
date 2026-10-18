@@ -43,15 +43,15 @@ export const OwnerPortal: React.FC = () => {
   const [regForm, setRegForm] = useState({
     name: '',
     address: '',
-    city: 'New Delhi',
+    city: '',
     locality: '',
-    latitude: 28.6315,
-    longitude: 77.2167,
+    latitude: 0,
+    longitude: 0,
     description: '',
     facilities: ['Running Water', 'Washbasin', 'Western WC'],
     opening_hours: '06:00 - 23:00',
     accessibility: true,
-    contact_number: '+91-9812345678'
+    contact_number: ''
   });
   const [isSubmittingReg, setIsSubmittingReg] = useState(false);
 
@@ -113,15 +113,15 @@ export const OwnerPortal: React.FC = () => {
       setRegForm({
         name: '',
         address: '',
-        city: 'New Delhi',
+        city: '',
         locality: '',
-        latitude: 28.6315,
-        longitude: 77.2167,
+        latitude: 0,
+        longitude: 0,
         description: '',
         facilities: ['Running Water', 'Washbasin', 'Western WC'],
         opening_hours: '06:00 - 23:00',
         accessibility: true,
-        contact_number: '+91-9812345678'
+        contact_number: ''
       });
       await loadOwnerData();
       alert('Sanitation facility submitted and added to your assigned facilities.');

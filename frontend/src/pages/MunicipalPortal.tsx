@@ -54,15 +54,15 @@ export const MunicipalPortal: React.FC = () => {
   const [regForm, setRegForm] = useState({
     name: '',
     address: '',
-    city: 'New Delhi',
+    city: '',
     locality: '',
-    latitude: 28.6315,
-    longitude: 77.2167,
+    latitude: 0,
+    longitude: 0,
     description: '',
     facilities: ['Running Water', 'Western WC', 'Washbasin'],
     opening_hours: '06:00 - 23:00',
     accessibility: true,
-    contact_number: '+91-11-2334455'
+    contact_number: ''
   });
   const [isSubmittingReg, setIsSubmittingReg] = useState(false);
   const [regSuccess, setRegSuccess] = useState<string | null>(null);
@@ -150,15 +150,15 @@ export const MunicipalPortal: React.FC = () => {
       setRegForm({
         name: '',
         address: '',
-        city: 'New Delhi',
+        city: '',
         locality: '',
-        latitude: 28.6315,
-        longitude: 77.2167,
+        latitude: 0,
+        longitude: 0,
         description: '',
         facilities: ['Running Water', 'Western WC', 'Washbasin'],
         opening_hours: '06:00 - 23:00',
         accessibility: true,
-        contact_number: '+91-11-2334455'
+        contact_number: ''
       });
       setTimeout(() => {
         setRegSuccess(null);
@@ -679,7 +679,7 @@ export const MunicipalPortal: React.FC = () => {
                 required
                 value={regForm.name}
                 onChange={(e) => setRegForm({ ...regForm, name: e.target.value })}
-                placeholder="e.g. Connaught Place Block C Public Toilet"
+                placeholder="e.g. Central Transit Station Public Convenience"
                 className="w-full px-3.5 py-2.5 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] focus:outline-hidden"
               />
             </div>
@@ -694,7 +694,7 @@ export const MunicipalPortal: React.FC = () => {
                   required
                   value={regForm.city}
                   onChange={(e) => setRegForm({ ...regForm, city: e.target.value })}
-                  placeholder="e.g. New Delhi"
+                  placeholder="e.g. Metro City"
                   className="w-full px-3.5 py-2.5 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] focus:outline-hidden"
                 />
               </div>
@@ -708,7 +708,7 @@ export const MunicipalPortal: React.FC = () => {
                   required
                   value={regForm.locality}
                   onChange={(e) => setRegForm({ ...regForm, locality: e.target.value })}
-                  placeholder="e.g. Connaught Place"
+                  placeholder="e.g. Downtown Sector 1"
                   className="w-full px-3.5 py-2.5 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] focus:outline-hidden"
                 />
               </div>

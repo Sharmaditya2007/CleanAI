@@ -142,7 +142,7 @@ export const LandingPage: React.FC = () => {
             <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#6E6E73]" />
             <input
               type="text"
-              placeholder="Search by city, locality, or landmark (e.g. Connaught Place)..."
+              placeholder="Search by city, locality, or landmark (e.g. Central Station, Market, Terminal)..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-11 pr-4 py-3 bg-transparent text-sm text-[#F5F5F7] placeholder-[#6E6E73] focus:outline-hidden"
