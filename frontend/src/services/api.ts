@@ -10,21 +10,56 @@ import {
   Notification
 } from '../types';
 
-const ENV_API_URL = import.meta.env.VITE_API_URL as string | undefined;
-export const API_BASE = ENV_API_URL
-  ? (ENV_API_URL.endsWith('/api') ? ENV_API_URL : `${ENV_API_URL.replace(/\/$/, '')}/api`)
-  : '/api';
+export function getApiBase(): string {
+  if (typeof window !== 'undefined') {
+    const custom = localStorage.getItem('clean_ai_custom_api_url');
+    if (custom && custom.trim()) {
+      const clean = custom.trim();
+      return clean.endsWith('/api') ? clean : `${clean.replace(/\/$/, '')}/api`;
+    }
+  }
+  const envUrl = import.meta.env.VITE_API_URL as string | undefined;
+  if (envUrl && envUrl.trim()) {
+    const clean = envUrl.trim();
+    return clean.endsWith('/api') ? clean : `${clean.replace(/\/$/, '')}/api`;
+  }
+  return '/api';
+}
+
+export function setCustomApiUrl(url: string | null) {
+  if (typeof window !== 'undefined') {
+    if (url && url.trim()) {
+      localStorage.setItem('clean_ai_custom_api_url', url.trim());
+    } else {
+      localStorage.removeItem('clean_ai_custom_api_url');
+    }
+  }
+}
+
+export function getCustomApiUrl(): string | null {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('clean_ai_custom_api_url');
+  }
+  return null;
+}
+
+export const API_BASE = getApiBase();
 
 export function getMediaUrl(path?: string | null): string {
   if (!path) return '';
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
-  if (!ENV_API_URL) return path;
-  const origin = ENV_API_URL.replace(/\/api\/?$/, '');
-  return `${origin}${path.startsWith('/') ? path : `/${path}`}`;
+  const base = getApiBase();
+  if (base.startsWith('http://') || base.startsWith('https://')) {
+    const origin = base.replace(/\/api\/?$/, '');
+    return `${origin}${path.startsWith('/') ? path : `/${path}`}`;
+  }
+  return path;
 }
 
 function getHeaders(isFormData = false): HeadersInit {
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = {
+    'Bypass-Tunnel-Reminder': 'true'
+  };
   if (!isFormData) {
     headers['Content-Type'] = 'application/json';
   }
@@ -36,11 +71,22 @@ function getHeaders(isFormData = false): HeadersInit {
 }
 
 async function safeFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const isRemote = typeof window !== 'undefined' &&
+    window.location.hostname !== 'localhost' &&
+    window.location.hostname !== '127.0.0.1';
+
+  const updatedInit: RequestInit = { ...init };
+  const headers = new Headers(updatedInit.headers || {});
+  if (!headers.has('Bypass-Tunnel-Reminder')) {
+    headers.set('Bypass-Tunnel-Reminder', 'true');
+  }
+  updatedInit.headers = headers;
+
   try {
-    return await fetch(input, init);
+    return await fetch(input, updatedInit);
   } catch (err: any) {
-    // If relative proxy failed, attempt direct connection to backend port 8000
-    if (typeof input === 'string' && input.startsWith('/api')) {
+    // If on localhost and relative proxy failed, attempt direct connection to backend port 8000
+    if (!isRemote && typeof input === 'string' && input.startsWith('/api')) {
       try {
         const directUrl = `http://127.0.0.1:8000${input}`;
         return await fetch(directUrl, init);
@@ -50,6 +96,11 @@ async function safeFetch(input: RequestInfo | URL, init?: RequestInit): Promise<
     }
     const message = err?.message || '';
     if (message.toLowerCase().includes('fetch') || message.toLowerCase().includes('network')) {
+      if (isRemote) {
+        throw new Error(
+          'Unable to reach Clean AI backend from Vercel. Please link your deployed backend URL in Vercel environment variables (VITE_API_URL) or in the Cloud Settings modal.'
+        );
+      }
       throw new Error('Unable to connect to Clean AI backend. Please verify the backend is running on port 8000.');
     }
     throw err;
@@ -59,6 +110,15 @@ async function safeFetch(input: RequestInfo | URL, init?: RequestInit): Promise<
 async function handleResponse<T>(res: Response): Promise<T> {
   const contentType = res.headers.get('content-type') || '';
   if (!contentType.includes('application/json')) {
+    const isRemote = typeof window !== 'undefined' &&
+      window.location.hostname !== 'localhost' &&
+      window.location.hostname !== '127.0.0.1';
+
+    if (isRemote) {
+      throw new Error(
+        'Backend API unlinked on Vercel: Vercel served frontend HTML instead of API data. Please set VITE_API_URL in your Vercel Project Settings (e.g. your Render backend URL) or click the Cloud Connection button in the top bar.'
+      );
+    }
     if (!res.ok) {
       throw new Error(`Server returned HTTP ${res.status}: ${res.statusText || 'Error'}`);
     }
@@ -84,13 +144,13 @@ async function handleResponse<T>(res: Response): Promise<T> {
 export const api = {
   // Health
   getHealth: async (): Promise<HealthInfo> => {
-    const res = await safeFetch(`${API_BASE}/health`);
+    const res = await safeFetch(`${getApiBase()}/health`);
     return handleResponse<HealthInfo>(res);
   },
 
   // Auth
   login: async (email: string, password: string): Promise<{ access_token: string; user: User }> => {
-    const res = await safeFetch(`${API_BASE}/auth/login`, {
+    const res = await safeFetch(`${getApiBase()}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: email.trim().toLowerCase(), password })
@@ -106,7 +166,7 @@ export const api = {
     phone?: string;
     organization?: string;
   }): Promise<{ access_token: string; user: User }> => {
-    const res = await safeFetch(`${API_BASE}/auth/register`, {
+    const res = await safeFetch(`${getApiBase()}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -119,7 +179,7 @@ export const api = {
   },
 
   getMe: async (): Promise<User> => {
-    const res = await safeFetch(`${API_BASE}/auth/me`, {
+    const res = await safeFetch(`${getApiBase()}/auth/me`, {
       headers: getHeaders()
     });
     return handleResponse<User>(res);
@@ -144,21 +204,21 @@ export const api = {
         }
       });
     }
-    const res = await safeFetch(`${API_BASE}/toilets?${query.toString()}`, {
+    const res = await safeFetch(`${getApiBase()}/toilets?${query.toString()}`, {
       headers: getHeaders()
     });
     return handleResponse<Toilet[]>(res);
   },
 
   getToilet: async (id: string): Promise<Toilet> => {
-    const res = await safeFetch(`${API_BASE}/toilets/${id}`, {
+    const res = await safeFetch(`${getApiBase()}/toilets/${id}`, {
       headers: getHeaders()
     });
     return handleResponse<Toilet>(res);
   },
 
   registerToilet: async (toiletData: Partial<Toilet>): Promise<Toilet> => {
-    const res = await safeFetch(`${API_BASE}/toilets`, {
+    const res = await safeFetch(`${getApiBase()}/toilets`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify(toiletData)
@@ -167,7 +227,7 @@ export const api = {
   },
 
   updateToilet: async (id: string, updates: Partial<Toilet>): Promise<Toilet> => {
-    const res = await safeFetch(`${API_BASE}/toilets/${id}`, {
+    const res = await safeFetch(`${getApiBase()}/toilets/${id}`, {
       method: 'PUT',
       headers: getHeaders(),
       body: JSON.stringify(updates)
@@ -176,7 +236,7 @@ export const api = {
   },
 
   approveToilet: async (id: string): Promise<Toilet> => {
-    const res = await safeFetch(`${API_BASE}/toilets/${id}/approve`, {
+    const res = await safeFetch(`${getApiBase()}/toilets/${id}/approve`, {
       method: 'POST',
       headers: getHeaders()
     });
@@ -184,7 +244,7 @@ export const api = {
   },
 
   rejectToilet: async (id: string, reason: string): Promise<Toilet> => {
-    const res = await safeFetch(`${API_BASE}/toilets/${id}/reject`, {
+    const res = await safeFetch(`${getApiBase()}/toilets/${id}/reject`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify({ reason })
@@ -199,7 +259,7 @@ export const api = {
     if (toiletId) {
       formData.append('toilet_id', toiletId);
     }
-    const res = await safeFetch(`${API_BASE}/ai/inspect`, {
+    const res = await safeFetch(`${getApiBase()}/ai/inspect`, {
       method: 'POST',
       headers: getHeaders(true),
       body: formData
@@ -208,7 +268,7 @@ export const api = {
   },
 
   runSampleTest: async (): Promise<AIInferenceResult> => {
-    const res = await safeFetch(`${API_BASE}/ai/sample-test`, {
+    const res = await safeFetch(`${getApiBase()}/ai/sample-test`, {
       headers: getHeaders()
     });
     return handleResponse<AIInferenceResult>(res);
@@ -223,7 +283,7 @@ export const api = {
     is_override: boolean;
     override_reason?: string;
   }): Promise<Inspection> => {
-    const res = await safeFetch(`${API_BASE}/inspections/confirm`, {
+    const res = await safeFetch(`${getApiBase()}/inspections/confirm`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify(data)
@@ -232,14 +292,14 @@ export const api = {
   },
 
   getInspections: async (toiletId?: string): Promise<Inspection[]> => {
-    const url = toiletId ? `${API_BASE}/inspections?toilet_id=${toiletId}` : `${API_BASE}/inspections`;
+    const url = toiletId ? `${getApiBase()}/inspections?toilet_id=${toiletId}` : `${getApiBase()}/inspections`;
     const res = await safeFetch(url, { headers: getHeaders() });
     return handleResponse<Inspection[]>(res);
   },
 
   // Cleaning Tasks
   getTasks: async (toiletId?: string): Promise<CleaningTask[]> => {
-    const url = toiletId ? `${API_BASE}/tasks?toilet_id=${toiletId}` : `${API_BASE}/tasks`;
+    const url = toiletId ? `${getApiBase()}/tasks?toilet_id=${toiletId}` : `${getApiBase()}/tasks`;
     const res = await safeFetch(url, { headers: getHeaders() });
     return handleResponse<CleaningTask[]>(res);
   },
@@ -249,7 +309,7 @@ export const api = {
     priority?: string;
     notes?: string;
   }): Promise<CleaningTask> => {
-    const res = await safeFetch(`${API_BASE}/tasks`, {
+    const res = await safeFetch(`${getApiBase()}/tasks`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify(data)
@@ -258,7 +318,7 @@ export const api = {
   },
 
   markTaskInProgress: async (taskId: string): Promise<CleaningTask> => {
-    const res = await safeFetch(`${API_BASE}/tasks/${taskId}/claim`, {
+    const res = await safeFetch(`${getApiBase()}/tasks/${taskId}/claim`, {
       method: 'PUT',
       headers: getHeaders()
     });
@@ -275,7 +335,7 @@ export const api = {
     if (afterPhoto) {
       formData.append('after_photo', afterPhoto);
     }
-    const res = await safeFetch(`${API_BASE}/tasks/${taskId}/complete`, {
+    const res = await safeFetch(`${getApiBase()}/tasks/${taskId}/complete`, {
       method: 'POST',
       headers: getHeaders(true),
       body: formData
@@ -301,7 +361,7 @@ export const api = {
     if (data.photo) {
       formData.append('photo', data.photo);
     }
-    const res = await safeFetch(`${API_BASE}/complaints`, {
+    const res = await safeFetch(`${getApiBase()}/complaints`, {
       method: 'POST',
       headers: getHeaders(true),
       body: formData
@@ -310,13 +370,13 @@ export const api = {
   },
 
   getComplaints: async (toiletId?: string): Promise<Complaint[]> => {
-    const url = toiletId ? `${API_BASE}/complaints?toilet_id=${toiletId}` : `${API_BASE}/complaints`;
+    const url = toiletId ? `${getApiBase()}/complaints?toilet_id=${toiletId}` : `${getApiBase()}/complaints`;
     const res = await safeFetch(url, { headers: getHeaders() });
     return handleResponse<Complaint[]>(res);
   },
 
   trackComplaint: async (referenceNumber: string): Promise<Complaint> => {
-    const res = await safeFetch(`${API_BASE}/complaints/track/${referenceNumber}`);
+    const res = await safeFetch(`${getApiBase()}/complaints/track/${referenceNumber}`);
     return handleResponse<Complaint>(res);
   },
 
@@ -325,7 +385,7 @@ export const api = {
     status: string,
     resolutionNotes?: string
   ): Promise<Complaint> => {
-    const res = await safeFetch(`${API_BASE}/complaints/${complaintId}/status`, {
+    const res = await safeFetch(`${getApiBase()}/complaints/${complaintId}/status`, {
       method: 'PUT',
       headers: getHeaders(),
       body: JSON.stringify({ status, resolution_notes: resolutionNotes })
@@ -335,7 +395,7 @@ export const api = {
 
   // Analytics
   getAnalytics: async (): Promise<MunicipalAnalytics> => {
-    const res = await safeFetch(`${API_BASE}/analytics`, {
+    const res = await safeFetch(`${getApiBase()}/analytics`, {
       headers: getHeaders()
     });
     return handleResponse<MunicipalAnalytics>(res);
@@ -344,7 +404,7 @@ export const api = {
   // Notifications
   getNotifications: async (): Promise<Notification[]> => {
     try {
-      const res = await safeFetch(`${API_BASE}/notifications`, {
+      const res = await safeFetch(`${getApiBase()}/notifications`, {
         headers: getHeaders()
       });
       return await handleResponse<Notification[]>(res);
@@ -354,7 +414,7 @@ export const api = {
   },
 
   markNotificationRead: async (notificationId: string): Promise<any> => {
-    const res = await safeFetch(`${API_BASE}/notifications/${notificationId}/read`, {
+    const res = await safeFetch(`${getApiBase()}/notifications/${notificationId}/read`, {
       method: 'PUT',
       headers: getHeaders()
     });
@@ -362,7 +422,7 @@ export const api = {
   },
 
   markAllNotificationsRead: async (): Promise<any> => {
-    const res = await safeFetch(`${API_BASE}/notifications/mark-all-read`, {
+    const res = await safeFetch(`${getApiBase()}/notifications/mark-all-read`, {
       method: 'POST',
       headers: getHeaders()
     });
