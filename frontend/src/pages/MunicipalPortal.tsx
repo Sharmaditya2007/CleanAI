@@ -47,6 +47,7 @@ export const MunicipalPortal: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [authSuccess, setAuthSuccess] = useState<string | null>(null);
 
   // Email OTP verification states for officer
   const [officerOtpSent, setOfficerOtpSent] = useState(false);
@@ -164,9 +165,11 @@ export const MunicipalPortal: React.FC = () => {
   const handleSendOfficerOTP = async () => {
     if (!officerEmail.trim() || !officerEmail.includes('@') || !officerEmail.includes('.')) {
       setAuthError('Please enter a valid municipal email address first.');
+      setAuthSuccess(null);
       return;
     }
     setAuthError(null);
+    setAuthSuccess(null);
     setOfficerOtpLoading(true);
     try {
       const res = await api.sendOTP(officerEmail, 'registration');
@@ -177,7 +180,7 @@ export const MunicipalPortal: React.FC = () => {
       } else {
         setOfficerDebugOtp(null);
       }
-      alert(res.message);
+      setAuthSuccess(res.message);
       if (res.debug_otp) {
         console.log(`[Clean AI Verification Code]: ${res.debug_otp}`);
       }
@@ -191,14 +194,16 @@ export const MunicipalPortal: React.FC = () => {
   const handleVerifyOfficerOTP = async () => {
     if (!officerOtpCode.trim() || officerOtpCode.trim().length < 6) {
       setAuthError('Please enter the 6-digit verification code.');
+      setAuthSuccess(null);
       return;
     }
     setAuthError(null);
+    setAuthSuccess(null);
     setOfficerOtpLoading(true);
     try {
       const res = await api.verifyOTP(officerEmail, officerOtpCode, 'registration');
       setOfficerOtpVerified(true);
-      alert(res.message);
+      setAuthSuccess(res.message);
     } catch (err: any) {
       setAuthError(err.message || 'Incorrect verification code.');
     } finally {
@@ -209,6 +214,7 @@ export const MunicipalPortal: React.FC = () => {
   const handleOfficerAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError(null);
+    setAuthSuccess(null);
 
     if (isRegister && !officerOtpVerified) {
       setAuthError('Please click "Send OTP" and enter the verification code sent to your email before completing registration.');
@@ -475,6 +481,7 @@ export const MunicipalPortal: React.FC = () => {
               onClick={() => {
                 setIsRegister(false);
                 setAuthError(null);
+                setAuthSuccess(null);
               }}
               className={`py-2 rounded-lg transition-all cursor-pointer ${
                 !isRegister
@@ -489,6 +496,7 @@ export const MunicipalPortal: React.FC = () => {
               onClick={() => {
                 setIsRegister(true);
                 setAuthError(null);
+                setAuthSuccess(null);
               }}
               className={`py-2 rounded-lg transition-all cursor-pointer ${
                 isRegister
@@ -499,6 +507,13 @@ export const MunicipalPortal: React.FC = () => {
               Sign Up
             </button>
           </div>
+
+          {authSuccess && (
+            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2.5">
+              <CheckCircle2 size={16} className="shrink-0 text-emerald-400" />
+              <span className="leading-relaxed font-medium">{authSuccess}</span>
+            </div>
+          )}
 
           {authError && (
             <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex flex-col gap-2">
@@ -625,8 +640,9 @@ export const MunicipalPortal: React.FC = () => {
                     </button>
                   </div>
                 )}
-                <p className="text-[10px] text-[#A1A1A6]">
-                  Verification code sent to <strong>{officerEmail}</strong>.
+                <p className="text-[11px] text-emerald-400/90 flex items-center gap-1.5 font-medium">
+                  <CheckCircle2 size={12} className="text-emerald-400 shrink-0" />
+                  Verification code dispatched to <strong>{officerEmail}</strong>
                 </p>
               </div>
             )}
