@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Lock, Mail, ArrowRight, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { Sparkles, Lock, Mail, ArrowRight, Loader2, AlertCircle, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types';
 import { api } from '../services/api';
@@ -22,10 +22,24 @@ export const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [serverStatus, setServerStatus] = useState<'checking' | 'online' | 'offline'>('checking');
 
+  // Email OTP verification states
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpCooldown, setOtpCooldown] = useState(0);
+
   // Forgot password flow
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [resetToken, setResetToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
+
+  useEffect(() => {
+    if (otpCooldown > 0) {
+      const timer = setTimeout(() => setOtpCooldown(otpCooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [otpCooldown]);
 
   useEffect(() => {
     let mounted = true;
@@ -90,25 +104,70 @@ export const LoginPage: React.FC = () => {
     }
   };
 
+  const handleSendOTP = async () => {
+    if (!email.trim() || !email.includes('@') || !email.includes('.')) {
+      setError('Please enter a valid email address first.');
+      return;
+    }
+    setError(null);
+    setSuccessMsg(null);
+    setOtpLoading(true);
+    try {
+      const res = await api.sendOTP(email, 'registration');
+      setOtpSent(true);
+      setOtpCooldown(60);
+      setSuccessMsg(res.message);
+      if (res.debug_otp) {
+        console.log(`[Clean AI Debug OTP]: ${res.debug_otp}`);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to send verification code to this email.');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleVerifyOTP = async () => {
+    if (!otpCode.trim() || otpCode.trim().length < 6) {
+      setError('Please enter the full 6-digit verification code.');
+      return;
+    }
+    setError(null);
+    setSuccessMsg(null);
+    setOtpLoading(true);
+    try {
+      const res = await api.verifyOTP(email, otpCode, 'registration');
+      setOtpVerified(true);
+      setSuccessMsg(res.message);
+    } catch (err: any) {
+      setError(err.message || 'Incorrect verification code. Please check your inbox.');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccessMsg(null);
+
+    if (isRegister && !otpVerified) {
+      setError('Please click "Send OTP" and enter the 6-digit verification code sent to your email before completing registration.');
+      return;
+    }
+
     setLoading(true);
 
     try {
       if (isRegister) {
-        if (role === 'officer' && !inviteCode.trim()) {
-          // Check if officer key provided
-          // Allow fallback to default key if blank so setup is frictionless
-        }
         await register({
           email,
           password,
           full_name: fullName,
           role,
           phone: phone || undefined,
-          invite_code: inviteCode.trim() || undefined
+          invite_code: inviteCode.trim() || undefined,
+          otp_code: otpCode.trim() || undefined
         });
         if (role === 'officer') navigate('/authority');
         else if (role === 'owner') navigate('/owner');
@@ -263,15 +322,81 @@ export const LoginPage: React.FC = () => {
               )}
 
               <div>
-                <label className="block font-semibold text-[#A1A1A6] mb-1.5">Email</label>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full p-3 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7] focus:border-[#F5F5F7]/40 focus:outline-hidden transition-colors"
-                />
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="font-semibold text-[#A1A1A6]">Email Address</label>
+                  {isRegister && otpVerified && (
+                    <span className="text-[11px] font-semibold text-emerald-400 flex items-center gap-1">
+                      <CheckCircle2 size={12} />
+                      Verified
+                    </span>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    required
+                    disabled={isRegister && otpVerified}
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (otpVerified) {
+                        setOtpVerified(false);
+                        setOtpSent(false);
+                        setOtpCode('');
+                      }
+                    }}
+                    placeholder="name@example.com"
+                    className="flex-1 p-3 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7] focus:border-[#F5F5F7]/40 focus:outline-hidden transition-colors"
+                  />
+                  {isRegister && !otpVerified && (
+                    <button
+                      type="button"
+                      disabled={otpLoading || otpCooldown > 0 || !email.includes('@')}
+                      onClick={handleSendOTP}
+                      className="px-3.5 py-3 rounded-xl bg-[#161616] hover:bg-[#202020] border border-[#262626] text-xs font-semibold text-[#F5F5F7] transition-all cursor-pointer disabled:opacity-50 shrink-0"
+                    >
+                      {otpLoading ? (
+                        <Loader2 size={14} className="animate-spin text-[#F5F5F7]" />
+                      ) : otpCooldown > 0 ? (
+                        <span>Resend ({otpCooldown}s)</span>
+                      ) : (
+                        <span>{otpSent ? 'Resend' : 'Send OTP'}</span>
+                      )}
+                    </button>
+                  )}
+                </div>
               </div>
+
+              {/* 6-Digit Email OTP Box */}
+              {isRegister && otpSent && !otpVerified && (
+                <div className="p-3.5 rounded-xl bg-[#141414] border border-emerald-500/30 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <label className="font-semibold text-emerald-400 text-xs">Enter 6-Digit Verification Code</label>
+                    <span className="text-[10px] text-[#A1A1A6]">Sent to your inbox</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      maxLength={6}
+                      value={otpCode}
+                      onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                      placeholder="123456"
+                      className="flex-1 p-2.5 bg-[#1C1C1E] border border-[#333333] rounded-lg text-[#F5F5F7] font-mono text-center tracking-[4px] text-base font-bold focus:border-emerald-400 focus:outline-hidden"
+                    />
+                    <button
+                      type="button"
+                      disabled={otpLoading || otpCode.length < 6}
+                      onClick={handleVerifyOTP}
+                      className="px-4 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-[#050505] font-semibold text-xs transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      {otpLoading ? <Loader2 size={14} className="animate-spin" /> : 'Verify'}
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-[#A1A1A6]">
+                    Please enter the code sent to <strong>{email}</strong> to confirm this email is yours.
+                  </p>
+                </div>
+              )}
 
               <div>
                 <div className="flex items-center justify-between mb-1.5">

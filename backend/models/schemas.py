@@ -18,6 +18,22 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
     invite_code: Optional[str] = None
+    otp_code: Optional[str] = None
+
+class SendOTPRequest(BaseModel):
+    email: str
+    purpose: Optional[str] = "registration"
+
+class VerifyOTPRequest(BaseModel):
+    email: str
+    otp_code: str
+    purpose: Optional[str] = "registration"
+
+class OTPResponse(BaseModel):
+    success: bool
+    message: str
+    expires_in_seconds: Optional[int] = None
+    debug_otp: Optional[str] = None
 
 class UserLogin(BaseModel):
     email: str

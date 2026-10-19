@@ -48,6 +48,13 @@ export const MunicipalPortal: React.FC = () => {
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
+  // Email OTP verification states for officer
+  const [officerOtpSent, setOfficerOtpSent] = useState(false);
+  const [officerOtpCode, setOfficerOtpCode] = useState('');
+  const [officerOtpVerified, setOfficerOtpVerified] = useState(false);
+  const [officerOtpLoading, setOfficerOtpLoading] = useState(false);
+  const [officerOtpCooldown, setOfficerOtpCooldown] = useState(0);
+
   // Portal data states
   const [toilets, setToilets] = useState<Toilet[]>([]);
   const [complaints, setComplaints] = useState<Complaint[]>([]);
@@ -121,6 +128,13 @@ export const MunicipalPortal: React.FC = () => {
   const isOfficer = user && user.role === 'officer';
 
   useEffect(() => {
+    if (officerOtpCooldown > 0) {
+      const timer = setTimeout(() => setOfficerOtpCooldown(officerOtpCooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [officerOtpCooldown]);
+
+  useEffect(() => {
     if (isOfficer) {
       loadData();
     }
@@ -146,10 +160,56 @@ export const MunicipalPortal: React.FC = () => {
     }
   };
 
+  const handleSendOfficerOTP = async () => {
+    if (!officerEmail.trim() || !officerEmail.includes('@') || !officerEmail.includes('.')) {
+      setAuthError('Please enter a valid municipal email address first.');
+      return;
+    }
+    setAuthError(null);
+    setOfficerOtpLoading(true);
+    try {
+      const res = await api.sendOTP(officerEmail, 'registration');
+      setOfficerOtpSent(true);
+      setOfficerOtpCooldown(60);
+      alert(res.message);
+      if (res.debug_otp) {
+        console.log(`[Clean AI Debug OTP]: ${res.debug_otp}`);
+      }
+    } catch (err: any) {
+      setAuthError(err.message || 'Failed to send verification code.');
+    } finally {
+      setOfficerOtpLoading(false);
+    }
+  };
+
+  const handleVerifyOfficerOTP = async () => {
+    if (!officerOtpCode.trim() || officerOtpCode.trim().length < 6) {
+      setAuthError('Please enter the 6-digit verification code.');
+      return;
+    }
+    setAuthError(null);
+    setOfficerOtpLoading(true);
+    try {
+      const res = await api.verifyOTP(officerEmail, officerOtpCode, 'registration');
+      setOfficerOtpVerified(true);
+      alert(res.message);
+    } catch (err: any) {
+      setAuthError(err.message || 'Incorrect verification code.');
+    } finally {
+      setOfficerOtpLoading(false);
+    }
+  };
+
   const handleOfficerAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    setAuthLoading(true);
     setAuthError(null);
+
+    if (isRegister && !officerOtpVerified) {
+      setAuthError('Please click "Send OTP" and enter the verification code sent to your email before completing registration.');
+      return;
+    }
+
+    setAuthLoading(true);
     try {
       if (isRegister) {
         await register({
@@ -157,7 +217,8 @@ export const MunicipalPortal: React.FC = () => {
           password: officerPassword,
           full_name: officerName,
           role: 'officer',
-          invite_code: officerInviteCode.trim() || undefined
+          invite_code: officerInviteCode.trim() || undefined,
+          otp_code: officerOtpCode.trim() || undefined
         });
       } else {
         await login(officerEmail, officerPassword);
@@ -473,19 +534,84 @@ export const MunicipalPortal: React.FC = () => {
             )}
 
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-[#A1A1A6]">Officer Email</label>
-              <div className="relative">
-                <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6E6E73]" />
-                <input
-                  type="email"
-                  required
-                  value={officerEmail}
-                  onChange={(e) => setOfficerEmail(e.target.value)}
-                  placeholder=""
-                  className="w-full pl-10 pr-3.5 py-2.5 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] focus:border-[#F5F5F7]/40 focus:outline-hidden"
-                />
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-semibold text-[#A1A1A6]">Officer Email</label>
+                {isRegister && officerOtpVerified && (
+                  <span className="text-[11px] font-semibold text-emerald-400 flex items-center gap-1">
+                    <CheckCircle2 size={12} />
+                    Verified
+                  </span>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6E6E73]" />
+                  <input
+                    type="email"
+                    required
+                    disabled={isRegister && officerOtpVerified}
+                    value={officerEmail}
+                    onChange={(e) => {
+                      setOfficerEmail(e.target.value);
+                      if (officerOtpVerified) {
+                        setOfficerOtpVerified(false);
+                        setOfficerOtpSent(false);
+                        setOfficerOtpCode('');
+                      }
+                    }}
+                    placeholder="officer@authority.gov"
+                    className="w-full pl-10 pr-3.5 py-2.5 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] focus:border-[#F5F5F7]/40 focus:outline-hidden"
+                  />
+                </div>
+                {isRegister && !officerOtpVerified && (
+                  <button
+                    type="button"
+                    disabled={officerOtpLoading || officerOtpCooldown > 0 || !officerEmail.includes('@')}
+                    onClick={handleSendOfficerOTP}
+                    className="px-3 py-2.5 rounded-xl bg-[#161616] hover:bg-[#202020] border border-[#262626] text-xs font-semibold text-[#F5F5F7] transition-all cursor-pointer disabled:opacity-50 shrink-0"
+                  >
+                    {officerOtpLoading ? (
+                      <Loader2 size={14} className="animate-spin text-[#F5F5F7]" />
+                    ) : officerOtpCooldown > 0 ? (
+                      <span>Resend ({officerOtpCooldown}s)</span>
+                    ) : (
+                      <span>{officerOtpSent ? 'Resend' : 'Send OTP'}</span>
+                    )}
+                  </button>
+                )}
               </div>
             </div>
+
+            {/* Officer 6-Digit Email OTP Box */}
+            {isRegister && officerOtpSent && !officerOtpVerified && (
+              <div className="p-3.5 rounded-xl bg-[#141414] border border-emerald-500/30 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="font-semibold text-emerald-400 text-xs">Enter 6-Digit Verification Code</label>
+                  <span className="text-[10px] text-[#A1A1A6]">Sent to municipal inbox</span>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    maxLength={6}
+                    value={officerOtpCode}
+                    onChange={(e) => setOfficerOtpCode(e.target.value.replace(/\D/g, ''))}
+                    placeholder="123456"
+                    className="flex-1 p-2 bg-[#1C1C1E] border border-[#333333] rounded-lg text-[#F5F5F7] font-mono text-center tracking-[4px] text-sm font-bold focus:border-emerald-400 focus:outline-hidden"
+                  />
+                  <button
+                    type="button"
+                    disabled={officerOtpLoading || officerOtpCode.length < 6}
+                    onClick={handleVerifyOfficerOTP}
+                    className="px-3.5 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-[#050505] font-semibold text-xs transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    {officerOtpLoading ? <Loader2 size={14} className="animate-spin" /> : 'Verify'}
+                  </button>
+                </div>
+                <p className="text-[10px] text-[#A1A1A6]">
+                  Verification code sent to <strong>{officerEmail}</strong>.
+                </p>
+              </div>
+            )}
 
             <div className="space-y-1.5">
               <label className="block text-xs font-semibold text-[#A1A1A6]">Password</label>

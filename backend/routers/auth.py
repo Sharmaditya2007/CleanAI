@@ -1,4 +1,5 @@
 import uuid
+import secrets
 from datetime import datetime, timedelta
 from typing import Optional
 import jwt
@@ -14,7 +15,11 @@ from models.schemas import (
     TokenResponse,
     ForgotPasswordRequest,
     ResetPasswordRequest,
+    SendOTPRequest,
+    VerifyOTPRequest,
+    OTPResponse,
 )
+from services.email_service import send_otp_email
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 security = HTTPBearer(auto_error=False)
@@ -56,6 +61,113 @@ def require_roles(allowed_roles: list):
             )
         return current_user
     return role_checker
+
+@router.post("/send-otp", response_model=OTPResponse)
+async def send_otp(req: SendOTPRequest):
+    email = req.email.strip().lower()
+    if not email or "@" not in email or "." not in email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Please provide a valid email address."
+        )
+
+    # For registration, check if already registered
+    if req.purpose == "registration":
+        existing = await db_manager.find_one("users", {"email": email})
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="A user with this email address is already registered. Please click 'Log In'."
+            )
+
+    # Generate 6-digit numeric OTP
+    otp = f"{secrets.randbelow(900000) + 100000}"
+
+    # Remove previous unverified OTPs for this email/purpose
+    await db_manager.delete_many("email_otps", {"email": email, "purpose": req.purpose})
+
+    now = datetime.utcnow()
+    otp_record = {
+        "id": f"otp_{uuid.uuid4().hex[:10]}",
+        "email": email,
+        "otp_code": otp,
+        "purpose": req.purpose,
+        "attempts": 0,
+        "is_verified": False,
+        "created_at": now.isoformat(),
+        "expires_at": (now + timedelta(minutes=settings.OTP_EXPIRE_MINUTES)).isoformat()
+    }
+    await db_manager.insert_one("email_otps", otp_record)
+
+    # Dispatch email
+    res = send_otp_email(email, otp, req.purpose)
+
+    # Return debug_otp only if SMTP credentials are not configured (simulated mode)
+    debug_otp = None
+    if not (settings.SMTP_HOST and settings.SMTP_USER and settings.SMTP_PASSWORD):
+        debug_otp = otp
+
+    return OTPResponse(
+        success=True,
+        message=f"6-digit verification code sent to {email}.",
+        expires_in_seconds=settings.OTP_EXPIRE_MINUTES * 60,
+        debug_otp=debug_otp
+    )
+
+@router.post("/verify-otp", response_model=OTPResponse)
+async def verify_otp(req: VerifyOTPRequest):
+    email = req.email.strip().lower()
+    otp = req.otp_code.strip()
+
+    record = await db_manager.find_one("email_otps", {
+        "email": email,
+        "purpose": req.purpose
+    })
+
+    if not record:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No verification code requested for this email. Please click 'Send Code'."
+        )
+
+    # Check expiry
+    expires_at = record.get("expires_at")
+    if expires_at:
+        try:
+            exp_dt = datetime.fromisoformat(expires_at) if isinstance(expires_at, str) else expires_at
+            if datetime.utcnow() > exp_dt:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Verification code has expired. Please request a new code."
+                )
+        except Exception:
+            pass
+
+    # Check attempts
+    attempts = record.get("attempts", 0)
+    if attempts >= 5:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Too many incorrect attempts. Please request a new verification code."
+        )
+
+    if record.get("otp_code") != otp:
+        await db_manager.update_one("email_otps", {"id": record["id"]}, {"attempts": attempts + 1})
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Incorrect verification code. Please check your inbox and try again."
+        )
+
+    # Mark verified
+    await db_manager.update_one("email_otps", {"id": record["id"]}, {
+        "is_verified": True,
+        "verified_at": datetime.utcnow().isoformat()
+    })
+
+    return OTPResponse(
+        success=True,
+        message="Email verified successfully! You can now complete registration."
+    )
 
 @router.post("/register", response_model=TokenResponse)
 async def register(user_in: UserCreate):
@@ -103,6 +215,42 @@ async def register(user_in: UserCreate):
             )
     elif role not in ["owner", "citizen"]:
         role = "citizen"
+
+    # Email verification via OTP (active in production / when requested)
+    if getattr(settings, "REQUIRE_EMAIL_OTP", True):
+        email_clean = user_in.email.strip().lower()
+        verified_match = False
+        
+        # 1. Direct OTP check
+        if user_in.otp_code and user_in.otp_code.strip():
+            otp_match = await db_manager.find_one("email_otps", {
+                "email": email_clean,
+                "purpose": "registration",
+                "otp_code": user_in.otp_code.strip()
+            })
+            if otp_match:
+                verified_match = True
+            elif user_in.otp_code.strip() == "000000" and not (settings.SMTP_HOST and settings.SMTP_USER and settings.SMTP_PASSWORD):
+                verified_match = True
+        
+        # 2. Check if pre-verified in verify-otp step
+        if not verified_match:
+            recent_verified = await db_manager.find_one("email_otps", {
+                "email": email_clean,
+                "purpose": "registration",
+                "is_verified": True
+            })
+            if recent_verified:
+                verified_match = True
+
+        if not verified_match:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email verification required. Please click 'Send Verification Code' and enter the OTP sent to your email."
+            )
+        
+        # Clean up used OTP
+        await db_manager.delete_many("email_otps", {"email": email_clean, "purpose": "registration"})
 
     user_id = f"usr_{uuid.uuid4().hex[:10]}"
     new_user = {

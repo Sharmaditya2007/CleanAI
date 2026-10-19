@@ -184,6 +184,7 @@ export const api = {
     phone?: string;
     organization?: string;
     invite_code?: string;
+    otp_code?: string;
   }): Promise<{ access_token: string; user: User }> => {
     const res = await safeFetch(`${getApiBase()}/auth/register`, {
       method: 'POST',
@@ -193,6 +194,24 @@ export const api = {
         email: data.email.trim().toLowerCase(),
         full_name: data.full_name.trim()
       })
+    });
+    return handleResponse(res);
+  },
+
+  sendOTP: async (email: string, purpose = 'registration'): Promise<{ success: boolean; message: string; expires_in_seconds?: number; debug_otp?: string }> => {
+    const res = await safeFetch(`${getApiBase()}/auth/send-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.trim().toLowerCase(), purpose })
+    });
+    return handleResponse(res);
+  },
+
+  verifyOTP: async (email: string, otpCode: string, purpose = 'registration'): Promise<{ success: boolean; message: string }> => {
+    const res = await safeFetch(`${getApiBase()}/auth/verify-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.trim().toLowerCase(), otp_code: otpCode.trim(), purpose })
     });
     return handleResponse(res);
   },

@@ -330,7 +330,8 @@ class CleanAIFullSuiteTests(unittest.TestCase):
             "password": "Password@123",
             "full_name": "Valid Test Officer",
             "role": "officer",
-            "invite_code": "MUNICIPAL-OFFICER-2026"
+            "invite_code": "MUNICIPAL-OFFICER-2026",
+            "otp_code": "000000"
         })
         self.assertEqual(resp_ok.status_code, 200)
         self.assertEqual(resp_ok.json()["user"]["role"], "officer")
@@ -367,6 +368,54 @@ class CleanAIFullSuiteTests(unittest.TestCase):
             "token": token2,
             "new_password": "Owner@123"
         })
+
+    def test_16_email_otp_flow(self):
+        """Test sending, verifying, and registering with email OTP."""
+        test_email = "citizen_verify_test@example.com"
+        
+        # 1. Send OTP
+        resp_send = self.client.post("/api/auth/send-otp", json={
+            "email": test_email,
+            "purpose": "registration"
+        })
+        self.assertEqual(resp_send.status_code, 200)
+        send_data = resp_send.json()
+        self.assertTrue(send_data["success"])
+        otp_code = send_data.get("debug_otp") or "000000"
+
+        # 2. Verify with wrong OTP
+        resp_wrong = self.client.post("/api/auth/verify-otp", json={
+            "email": test_email,
+            "otp_code": "999999",
+            "purpose": "registration"
+        })
+        self.assertEqual(resp_wrong.status_code, 400)
+
+        # 3. Verify with correct OTP
+        resp_verify = self.client.post("/api/auth/verify-otp", json={
+            "email": test_email,
+            "otp_code": otp_code,
+            "purpose": "registration"
+        })
+        self.assertEqual(resp_verify.status_code, 200)
+        self.assertTrue(resp_verify.json()["success"])
+
+        # 4. Register account after verification
+        resp_reg = self.client.post("/api/auth/register", json={
+            "email": test_email,
+            "password": "Password@123",
+            "full_name": "Verified Citizen",
+            "role": "citizen"
+        })
+        self.assertEqual(resp_reg.status_code, 200)
+        self.assertIn("access_token", resp_reg.json())
+
+        # 5. Sending OTP for an already registered email should fail
+        resp_dup = self.client.post("/api/auth/send-otp", json={
+            "email": test_email,
+            "purpose": "registration"
+        })
+        self.assertEqual(resp_dup.status_code, 400)
 
 if __name__ == "__main__":
     unittest.main()

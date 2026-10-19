@@ -489,4 +489,46 @@ class DatabaseManager:
         items = await self.find(collection, query or {})
         return len(items)
 
+    async def delete_one(self, collection: str, query: Dict[str, Any]) -> bool:
+        if self.is_mongo_connected and self.db is not None:
+            await self.db[collection].delete_one(query)
+
+        items = self._memory_store.get(collection, [])
+        for i, item in enumerate(items):
+            match = True
+            for k, v in query.items():
+                if item.get(k) != v:
+                    match = False
+                    break
+            if match:
+                items.pop(i)
+                self._save_all_local()
+                return True
+        return False
+
+    async def delete_many(self, collection: str, query: Dict[str, Any]) -> int:
+        deleted_count = 0
+        if self.is_mongo_connected and self.db is not None:
+            res = await self.db[collection].delete_many(query)
+            deleted_count = res.deleted_count
+
+        items = self._memory_store.get(collection, [])
+        retained = []
+        local_deleted = 0
+        for item in items:
+            match = True
+            for k, v in query.items():
+                if item.get(k) != v:
+                    match = False
+                    break
+            if not match:
+                retained.append(item)
+            else:
+                local_deleted += 1
+
+        self._memory_store[collection] = retained
+        if local_deleted > 0:
+            self._save_all_local()
+        return deleted_count or local_deleted
+
 db_manager = DatabaseManager()
