@@ -389,25 +389,13 @@ export const MunicipalPortal: React.FC = () => {
                   You are currently logged in as a <strong className="text-white capitalize">{user.role === 'owner' ? 'Facility Owner' : user.role}</strong> ({user.email}). The Authority Portal requires a <strong>Municipal Officer</strong> account.
                 </div>
               </div>
-              <div className="flex items-center gap-3 pt-1 text-[11px]">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOfficerEmail('officer@cleanai.gov');
-                    setOfficerPassword('Officer@123');
-                    setIsRegister(false);
-                    setAuthError(null);
-                  }}
-                  className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 font-semibold cursor-pointer transition-colors"
-                >
-                  Use Demo Officer Account
-                </button>
+              <div className="pt-1 text-[11px]">
                 <button
                   type="button"
                   onClick={() => logout()}
-                  className="text-[#A1A1A6] hover:text-white underline cursor-pointer"
+                  className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 font-semibold cursor-pointer transition-colors"
                 >
-                  Log out current account
+                  Log out of Facility Owner account
                 </button>
               </div>
             </div>
@@ -467,21 +455,6 @@ export const MunicipalPortal: React.FC = () => {
           )}
 
           <form onSubmit={handleOfficerAuth} className="space-y-4">
-            {!isRegister && (
-              <button
-                type="button"
-                onClick={() => {
-                  setOfficerEmail('officer@cleanai.gov');
-                  setOfficerPassword('Officer@123');
-                  setAuthError(null);
-                }}
-                className="w-full py-2 px-3 rounded-xl bg-[#141414] hover:bg-[#1a1a1a] border border-[#262626] text-xs text-[#A1A1A6] hover:text-[#F5F5F7] transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-              >
-                <ShieldCheck size={13} className="text-emerald-400" />
-                <span>Fill Demo Officer Credentials (officer@cleanai.gov)</span>
-              </button>
-            )}
-
             {isRegister && (
               <div className="space-y-1.5">
                 <label className="block text-xs font-semibold text-[#A1A1A6]">Officer Full Name</label>
