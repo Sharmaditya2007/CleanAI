@@ -385,7 +385,6 @@ export const LoginPage: React.FC = () => {
                       maxLength={6}
                       value={otpCode}
                       onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                      placeholder="123456"
                       className="flex-1 p-2.5 bg-[#1C1C1E] border border-[#333333] rounded-lg text-[#F5F5F7] font-mono text-center tracking-[4px] text-base font-bold focus:border-[#F5F5F7]/40 focus:outline-hidden"
                     />
                     <button
