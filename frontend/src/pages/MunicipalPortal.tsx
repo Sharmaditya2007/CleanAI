@@ -163,8 +163,29 @@ export const MunicipalPortal: React.FC = () => {
   };
 
   const handleSendOfficerOTP = async () => {
+    // 1. All fields are strictly mandatory before requesting OTP
+    if (!officerName.trim()) {
+      setAuthError('Please enter Officer Full Name before requesting a verification code.');
+      setAuthSuccess(null);
+      return;
+    }
+    if (!officerPassword.trim() || officerPassword.length < 6) {
+      setAuthError('Please enter a password of at least 6 characters before requesting a verification code.');
+      setAuthSuccess(null);
+      return;
+    }
+    if (!officerInviteCode.trim()) {
+      setAuthError('Please enter the Officer Authorization Key before requesting a verification code.');
+      setAuthSuccess(null);
+      return;
+    }
+    if (officerInviteCode.trim() !== 'MUNICIPAL-OFFICER-2026') {
+      setAuthError('Invalid Officer Authorization Key. Please enter the authorized municipal key (MUNICIPAL-OFFICER-2026).');
+      setAuthSuccess(null);
+      return;
+    }
     if (!officerEmail.trim() || !officerEmail.includes('@') || !officerEmail.includes('.')) {
-      setAuthError('Please enter a valid municipal email address first.');
+      setAuthError('Please enter a valid municipal email address before requesting a verification code.');
       setAuthSuccess(null);
       return;
     }
@@ -539,7 +560,7 @@ export const MunicipalPortal: React.FC = () => {
           <form onSubmit={handleOfficerAuth} className="space-y-4">
             {isRegister && (
               <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-[#A1A1A6]">Officer Full Name</label>
+                <label className="block text-xs font-semibold text-[#A1A1A6]">Officer Full Name <span className="text-rose-400">*</span></label>
                 <div className="relative">
                   <User size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6E6E73]" />
                   <input
@@ -556,7 +577,7 @@ export const MunicipalPortal: React.FC = () => {
 
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <label className="block text-xs font-semibold text-[#A1A1A6]">Officer Email</label>
+                <label className="block text-xs font-semibold text-[#A1A1A6]">Officer Email <span className="text-rose-400">*</span></label>
                 {isRegister && officerOtpVerified && (
                   <span className="text-[11px] font-semibold text-emerald-400 flex items-center gap-1">
                     <CheckCircle2 size={12} />
@@ -587,7 +608,7 @@ export const MunicipalPortal: React.FC = () => {
                 {isRegister && !officerOtpVerified && (
                   <button
                     type="button"
-                    disabled={officerOtpLoading || officerOtpCooldown > 0 || !officerEmail.includes('@')}
+                    disabled={officerOtpLoading || officerOtpCooldown > 0}
                     onClick={handleSendOfficerOTP}
                     className="px-3 py-2.5 rounded-xl bg-[#161616] hover:bg-[#202020] border border-[#262626] text-xs font-semibold text-[#F5F5F7] transition-all cursor-pointer disabled:opacity-50 shrink-0"
                   >
@@ -647,7 +668,9 @@ export const MunicipalPortal: React.FC = () => {
             )}
 
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-[#A1A1A6]">Password</label>
+              <label className="block text-xs font-semibold text-[#A1A1A6]">
+                Password {isRegister && <span className="text-rose-400">* <span className="text-[10px] text-[#6E6E73] font-normal">(min 6 chars)</span></span>}
+              </label>
               <div className="relative">
                 <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6E6E73]" />
                 <input

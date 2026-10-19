@@ -106,8 +106,32 @@ export const LoginPage: React.FC = () => {
   };
 
   const handleSendOTP = async () => {
+    // 1. All registration fields are strictly mandatory before requesting OTP
+    if (!fullName.trim()) {
+      setError('Please enter your full name before requesting a verification code.');
+      setSuccessMsg(null);
+      return;
+    }
+    if (!password.trim() || password.length < 6) {
+      setError('Please create a password (minimum 6 characters) before requesting a verification code.');
+      setSuccessMsg(null);
+      return;
+    }
+    if (role === 'officer') {
+      if (!inviteCode.trim()) {
+        setError('Please enter the Officer Authorization Key before requesting a verification code.');
+        setSuccessMsg(null);
+        return;
+      }
+      if (inviteCode.trim() !== 'MUNICIPAL-OFFICER-2026') {
+        setError('Invalid Officer Key. Please enter the authorized municipal key (MUNICIPAL-OFFICER-2026).');
+        setSuccessMsg(null);
+        return;
+      }
+    }
     if (!email.trim() || !email.includes('@') || !email.includes('.')) {
-      setError('Please enter a valid email address first.');
+      setError('Please enter a valid email address before requesting a verification code.');
+      setSuccessMsg(null);
       return;
     }
     setError(null);
@@ -315,7 +339,7 @@ export const LoginPage: React.FC = () => {
             <form onSubmit={handleSubmit} className="space-y-4 text-xs">
               {isRegister && (
                 <div>
-                  <label className="block font-semibold text-[#A1A1A6] mb-1.5">Full Name</label>
+                  <label className="block font-semibold text-[#A1A1A6] mb-1.5">Full Name <span className="text-rose-400">*</span></label>
                   <input
                     type="text"
                     required
@@ -328,7 +352,7 @@ export const LoginPage: React.FC = () => {
 
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="font-semibold text-[#A1A1A6]">Email Address</label>
+                  <label className="font-semibold text-[#A1A1A6]">Email Address <span className="text-rose-400">*</span></label>
                   {isRegister && otpVerified && (
                     <span className="text-[11px] font-semibold text-emerald-400 flex items-center gap-1">
                       <CheckCircle2 size={12} />
@@ -356,7 +380,7 @@ export const LoginPage: React.FC = () => {
                   {isRegister && !otpVerified && (
                     <button
                       type="button"
-                      disabled={otpLoading || otpCooldown > 0 || !email.includes('@')}
+                      disabled={otpLoading || otpCooldown > 0}
                       onClick={handleSendOTP}
                       className="px-3.5 py-3 rounded-xl bg-[#161616] hover:bg-[#202020] border border-[#262626] text-xs font-semibold text-[#F5F5F7] transition-all cursor-pointer disabled:opacity-50 shrink-0"
                     >
@@ -417,7 +441,9 @@ export const LoginPage: React.FC = () => {
 
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="font-semibold text-[#A1A1A6]">Password</label>
+                  <label className="font-semibold text-[#A1A1A6]">
+                    Password {isRegister && <span className="text-rose-400">* <span className="text-[10px] text-[#6E6E73] font-normal">(min 6 chars)</span></span>}
+                  </label>
                   {!isRegister && (
                     <button
                       type="button"
