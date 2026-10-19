@@ -93,6 +93,16 @@ async function safeFetch(input: RequestInfo | URL, init?: RequestInit): Promise<
   try {
     return await fetch(input, updatedInit);
   } catch (err: any) {
+    // If on remote (Vercel) and relative /api call failed, automatically retry directly against Render backend
+    if (isRemote && typeof input === 'string' && input.startsWith('/api')) {
+      try {
+        const directUrl = `${DEFAULT_PRODUCTION_API}${input.replace(/^\/api/, '')}`;
+        return await fetch(directUrl, updatedInit);
+      } catch {
+        // Fall through
+      }
+    }
+
     // If on localhost and relative proxy failed, attempt direct connection to backend port 8000
     if (!isRemote && typeof input === 'string' && input.startsWith('/api')) {
       try {
