@@ -116,7 +116,9 @@ class Settings:
     # Security & Officer Authorization
     MUNICIPAL_INVITE_KEY: str = os.getenv("MUNICIPAL_INVITE_KEY", "MUNICIPAL-OFFICER-2026")
 
-    # Email & OTP Settings
+    # Email & OTP Settings (HTTPS APIs bypass cloud port-blocking)
+    BREVO_API_KEY: str = os.getenv("BREVO_API_KEY", "").strip()
+    RESEND_API_KEY: str = os.getenv("RESEND_API_KEY", "").strip()
     SMTP_HOST: str = os.getenv("SMTP_HOST", "smtp.gmail.com")
     SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
     SMTP_USER: str = os.getenv("SMTP_USER", "").strip()

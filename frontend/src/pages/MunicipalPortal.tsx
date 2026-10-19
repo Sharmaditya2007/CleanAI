@@ -54,6 +54,7 @@ export const MunicipalPortal: React.FC = () => {
   const [officerOtpVerified, setOfficerOtpVerified] = useState(false);
   const [officerOtpLoading, setOfficerOtpLoading] = useState(false);
   const [officerOtpCooldown, setOfficerOtpCooldown] = useState(0);
+  const [officerDebugOtp, setOfficerDebugOtp] = useState<string | null>(null);
 
   // Portal data states
   const [toilets, setToilets] = useState<Toilet[]>([]);
@@ -171,9 +172,14 @@ export const MunicipalPortal: React.FC = () => {
       const res = await api.sendOTP(officerEmail, 'registration');
       setOfficerOtpSent(true);
       setOfficerOtpCooldown(60);
+      if (res.debug_otp) {
+        setOfficerDebugOtp(res.debug_otp);
+      } else {
+        setOfficerDebugOtp(null);
+      }
       alert(res.message);
       if (res.debug_otp) {
-        console.log(`[Clean AI Debug OTP]: ${res.debug_otp}`);
+        console.log(`[Clean AI Verification Code]: ${res.debug_otp}`);
       }
     } catch (err: any) {
       setAuthError(err.message || 'Failed to send verification code.');
@@ -607,6 +613,18 @@ export const MunicipalPortal: React.FC = () => {
                     {officerOtpLoading ? <Loader2 size={14} className="animate-spin" /> : 'Verify'}
                   </button>
                 </div>
+                {officerDebugOtp && (
+                  <div className="flex items-center justify-between text-xs bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg text-emerald-400">
+                    <span>Cloud Fallback Code: <strong>{officerDebugOtp}</strong></span>
+                    <button
+                      type="button"
+                      onClick={() => setOfficerOtpCode(officerDebugOtp)}
+                      className="underline text-[11px] font-semibold cursor-pointer hover:text-emerald-300 ml-2"
+                    >
+                      Auto-fill
+                    </button>
+                  </div>
+                )}
                 <p className="text-[10px] text-[#A1A1A6]">
                   Verification code sent to <strong>{officerEmail}</strong>.
                 </p>

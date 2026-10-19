@@ -102,9 +102,9 @@ async def send_otp(req: SendOTPRequest):
     # Dispatch email
     res = send_otp_email(email, otp, req.purpose)
 
-    # Return debug_otp only if SMTP credentials are not configured (simulated mode)
+    # Return debug_otp if simulated/fallback mode was used (e.g. cloud host blocked SMTP ports)
     debug_otp = None
-    if not (settings.SMTP_HOST and settings.SMTP_USER and settings.SMTP_PASSWORD):
+    if res.get("method") == "simulated":
         debug_otp = otp
 
     return OTPResponse(

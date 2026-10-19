@@ -28,6 +28,7 @@ export const LoginPage: React.FC = () => {
   const [otpVerified, setOtpVerified] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
   const [otpCooldown, setOtpCooldown] = useState(0);
+  const [debugOtp, setDebugOtp] = useState<string | null>(null);
 
   // Forgot password flow
   const [isForgotPassword, setIsForgotPassword] = useState(false);
@@ -118,7 +119,10 @@ export const LoginPage: React.FC = () => {
       setOtpCooldown(60);
       setSuccessMsg(res.message);
       if (res.debug_otp) {
-        console.log(`[Clean AI Debug OTP]: ${res.debug_otp}`);
+        setDebugOtp(res.debug_otp);
+        console.log(`[Clean AI Verification Code]: ${res.debug_otp}`);
+      } else {
+        setDebugOtp(null);
       }
     } catch (err: any) {
       setError(err.message || 'Failed to send verification code to this email.');
@@ -392,6 +396,18 @@ export const LoginPage: React.FC = () => {
                       {otpLoading ? <Loader2 size={14} className="animate-spin" /> : 'Verify'}
                     </button>
                   </div>
+                  {debugOtp && (
+                    <div className="flex items-center justify-between text-xs bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 rounded-lg text-emerald-400">
+                      <span>Cloud Fallback Code: <strong>{debugOtp}</strong></span>
+                      <button
+                        type="button"
+                        onClick={() => setOtpCode(debugOtp)}
+                        className="underline text-[11px] font-semibold cursor-pointer hover:text-emerald-300 ml-2"
+                      >
+                        Auto-fill
+                      </button>
+                    </div>
+                  )}
                   <p className="text-[10px] text-[#A1A1A6]">
                     Please enter the code sent to <strong>{email}</strong> to confirm this email is yours.
                   </p>

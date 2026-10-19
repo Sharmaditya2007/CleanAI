@@ -371,7 +371,8 @@ class CleanAIFullSuiteTests(unittest.TestCase):
 
     def test_16_email_otp_flow(self):
         """Test sending, verifying, and registering with email OTP."""
-        test_email = "citizen_verify_test@example.com"
+        import uuid
+        test_email = f"citizen_verify_{uuid.uuid4().hex[:6]}@example.com"
         
         # 1. Send OTP
         resp_send = self.client.post("/api/auth/send-otp", json={
