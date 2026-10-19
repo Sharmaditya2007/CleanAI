@@ -120,7 +120,7 @@ class Settings:
     SMTP_HOST: str = os.getenv("SMTP_HOST", "smtp.gmail.com")
     SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
     SMTP_USER: str = os.getenv("SMTP_USER", "").strip()
-    SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "").strip()
+    SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "").replace(" ", "").strip()
     SMTP_FROM_EMAIL: str = os.getenv("SMTP_FROM_EMAIL", "").strip()
     SMTP_FROM_NAME: str = os.getenv("SMTP_FROM_NAME", "Clean AI Sanitation Platform")
     OTP_EXPIRE_MINUTES: int = int(os.getenv("OTP_EXPIRE_MINUTES", "10"))

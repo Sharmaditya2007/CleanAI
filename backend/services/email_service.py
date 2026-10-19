@@ -77,11 +77,11 @@ If you did not request this code, you can safely ignore this email.
     """.strip()
 
     # Check if SMTP is configured
-    smtp_host = getattr(settings, 'SMTP_HOST', '')
+    smtp_host = getattr(settings, 'SMTP_HOST', '').strip()
     smtp_port = getattr(settings, 'SMTP_PORT', 587)
-    smtp_user = getattr(settings, 'SMTP_USER', '')
-    smtp_password = getattr(settings, 'SMTP_PASSWORD', '')
-    smtp_from = getattr(settings, 'SMTP_FROM_EMAIL', '') or smtp_user or "noreply@cleanai.gov"
+    smtp_user = getattr(settings, 'SMTP_USER', '').strip()
+    smtp_password = getattr(settings, 'SMTP_PASSWORD', '').replace(" ", "").strip()
+    smtp_from = getattr(settings, 'SMTP_FROM_EMAIL', '').strip() or smtp_user or "noreply@cleanai.gov"
     from_name = getattr(settings, 'SMTP_FROM_NAME', 'Clean AI Sanitation Platform')
 
     if smtp_host and smtp_user and smtp_password:
