@@ -113,7 +113,7 @@ class ToiletResponse(ToiletBase):
     total_complaints: int = 0
     distance_km: Optional[float] = None
     created_at: datetime
-    updated_at: datetime
+    updated_at: Optional[datetime] = None
 
 # Inspection Schemas
 class InspectionCreate(BaseModel):

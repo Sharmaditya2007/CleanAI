@@ -1,6 +1,11 @@
 import os
 from pathlib import Path
 try:
+    from dotenv import load_dotenv
+except ImportError:
+    load_dotenv = None
+
+try:
     from pydantic_settings import BaseSettings
 except ImportError:
     class BaseSettings:
@@ -9,6 +14,13 @@ except ImportError:
 BACKEND_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = BACKEND_DIR.parent
 CLEAN_AI_DIR = PROJECT_ROOT / "clean ai"
+
+# Load environment configuration from .env if available
+if load_dotenv:
+    if (BACKEND_DIR / ".env").exists():
+        load_dotenv(BACKEND_DIR / ".env")
+    elif (PROJECT_ROOT / ".env").exists():
+        load_dotenv(PROJECT_ROOT / ".env")
 
 # Auto-discover model path, prioritizing clean_ai_floor_v2, then clean_ai_augmented, then clean_ai_yolo
 CANDIDATE_MODEL_PATHS = [
@@ -80,7 +92,7 @@ class Settings:
     
     # Environment variables
     CLEAN_AI_DIR: Path = CLEAN_AI_DIR
-    MODEL_PATH: str = os.getenv("CLEAN_AI_MODEL_PATH", DEFAULT_MODEL_PATH)
+    MODEL_PATH: str = os.getenv("CLEAN_AI_MODEL_PATH", "").strip() or DEFAULT_MODEL_PATH
     MONGODB_URI: str = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
     MONGODB_DB_NAME: str = os.getenv("MONGODB_DB_NAME", "clean_ai_database")
     

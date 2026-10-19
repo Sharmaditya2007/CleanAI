@@ -32,6 +32,66 @@ class CleanAIFullSuiteTests(unittest.TestCase):
         cls.citizen_token = resp_citizen.json()["access_token"]
         cls.citizen_headers = {"Authorization": f"Bearer {cls.citizen_token}"}
 
+        # Ensure test facilities tlt_001 and tlt_002 exist for test assertions
+        from database.db import db_manager
+        import asyncio
+        async def init_test_fixtures():
+            t1 = await db_manager.find_one("toilets", {"id": "tlt_001"})
+            if not t1:
+                await db_manager.insert_one("toilets", {
+                    "id": "tlt_001",
+                    "name": "Connaught Place Block B Public Convenience",
+                    "address": "Block B, Radial Road 3, Inner Circle",
+                    "city": "New Delhi",
+                    "locality": "Connaught Place",
+                    "latitude": 28.6315,
+                    "longitude": 77.2167,
+                    "description": "Smart automated municipal facility with high footfall monitoring.",
+                    "facilities": ["Running Water", "Washbasin", "Western WC", "Urinals", "Accessible Ramp"],
+                    "opening_hours": "05:00 - 23:30",
+                    "accessibility": True,
+                    "access_type": "public",
+                    "contact_number": "+91-11-23341201",
+                    "owner_id": "usr_owner_01",
+                    "owner_name": "Suresh Patel",
+                    "registration_status": "Approved",
+                    "verified_status": "Clean",
+                    "last_inspected_at": "2026-10-18T10:00:00",
+                    "is_stale": False,
+                    "rating": 4.6,
+                    "total_complaints": 0,
+                    "created_at": "2026-10-18T00:00:00",
+                    "updated_at": "2026-10-18T00:00:00"
+                })
+            t2 = await db_manager.find_one("toilets", {"id": "tlt_002"})
+            if not t2:
+                await db_manager.insert_one("toilets", {
+                    "id": "tlt_002",
+                    "name": "Rajiv Chowk Metro Station Gate 2 Toilet",
+                    "address": "Gate 2 Concourse, Rajiv Chowk",
+                    "city": "New Delhi",
+                    "locality": "Connaught Place",
+                    "latitude": 28.6328,
+                    "longitude": 77.2195,
+                    "description": "High-capacity metro transit sanitation facility.",
+                    "facilities": ["Running Water", "Washbasin", "Urinals", "Indian Squat", "Western WC"],
+                    "opening_hours": "05:30 - 23:30",
+                    "accessibility": True,
+                    "access_type": "public",
+                    "contact_number": "+91-11-23417910",
+                    "owner_id": "usr_owner_01",
+                    "owner_name": "Suresh Patel",
+                    "registration_status": "Approved",
+                    "verified_status": "Clean",
+                    "last_inspected_at": "2026-10-18T10:00:00",
+                    "is_stale": False,
+                    "rating": 4.2,
+                    "total_complaints": 0,
+                    "created_at": "2026-10-18T00:00:00",
+                    "updated_at": "2026-10-18T00:00:00"
+                })
+        asyncio.run(init_test_fixtures())
+
     # --- 1. AI & Model Tests ---
 
     def test_01_model_discovery_and_preservation(self):

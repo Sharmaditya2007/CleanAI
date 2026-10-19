@@ -87,9 +87,13 @@ async def health_check():
             "load_error": model_service.load_error
         },
         "database": {
-            "type": "MongoDB Atlas / Local" if db_manager.is_mongo_connected else "Persistent Embedded Store (Fallback)",
+            "type": "MongoDB Atlas / Local" if db_manager.is_mongo_connected else "SQLite & JSON Persistent Store",
             "connected": db_manager.is_mongo_connected,
-            "database_name": settings.MONGODB_DB_NAME
+            "database_name": settings.MONGODB_DB_NAME,
+            "sqlite_file": "backend/data/clean_ai.db",
+            "json_store": "backend/data/db_store.json",
+            "users_count": await db_manager.count_documents("users"),
+            "toilets_count": await db_manager.count_documents("toilets")
         }
     }
 

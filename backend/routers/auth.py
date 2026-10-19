@@ -54,9 +54,34 @@ def require_roles(allowed_roles: list):
 async def register(user_in: UserCreate):
     existing = await db_manager.find_one("users", {"email": user_in.email.lower()})
     if existing:
+        if verify_password(user_in.password, existing.get("hashed_password", "")):
+            # If the user already registered with this exact password, log them in directly
+            token = create_access_token({"sub": existing["id"], "role": existing.get("role", "citizen"), "email": existing["email"]})
+            created_at_val = existing.get("created_at")
+            if isinstance(created_at_val, str):
+                try:
+                    dt = datetime.fromisoformat(created_at_val)
+                except Exception:
+                    dt = datetime.utcnow()
+            else:
+                dt = datetime.utcnow()
+
+            return TokenResponse(
+                access_token=token,
+                user=UserResponse(
+                    id=existing["id"],
+                    email=existing["email"],
+                    full_name=existing.get("full_name", ""),
+                    role=existing.get("role", "citizen"),
+                    phone=existing.get("phone"),
+                    organization=existing.get("organization"),
+                    is_active=existing.get("is_active", True),
+                    created_at=dt
+                )
+            )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="A user with this email address is already registered."
+            detail="A user with this email address is already registered. Please click 'Log In' to access your account."
         )
 
     # Secure role assignment (cannot register as officer directly unless initial system bootstrap)
