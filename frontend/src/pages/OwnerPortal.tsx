@@ -38,6 +38,15 @@ export const OwnerPortal: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [authSuccess, setAuthSuccess] = useState<string | null>(null);
+
+  // Email OTP verification states for owner
+  const [ownerOtpSent, setOwnerOtpSent] = useState(false);
+  const [ownerOtpCode, setOwnerOtpCode] = useState('');
+  const [ownerOtpVerified, setOwnerOtpVerified] = useState(false);
+  const [ownerOtpLoading, setOwnerOtpLoading] = useState(false);
+  const [ownerOtpCooldown, setOwnerOtpCooldown] = useState(0);
+  const [ownerDebugOtp, setOwnerDebugOtp] = useState<string | null>(null);
 
   // Portal state
   const [toilets, setToilets] = useState<Toilet[]>([]);
@@ -93,17 +102,92 @@ export const OwnerPortal: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    if (ownerOtpCooldown > 0) {
+      const timer = setTimeout(() => setOwnerOtpCooldown(ownerOtpCooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [ownerOtpCooldown]);
+
+  const handleSendOwnerOTP = async () => {
+    // 1. All registration fields are strictly mandatory before requesting OTP
+    if (!ownerName.trim()) {
+      setAuthError('Please enter your Full Name before requesting a verification code.');
+      setAuthSuccess(null);
+      return;
+    }
+    if (!ownerPassword.trim() || ownerPassword.length < 6) {
+      setAuthError('Please create a password of at least 6 characters before requesting a verification code.');
+      setAuthSuccess(null);
+      return;
+    }
+    if (!ownerEmail.trim() || !ownerEmail.includes('@') || !ownerEmail.includes('.')) {
+      setAuthError('Please enter a valid owner/contractor email address before requesting a verification code.');
+      setAuthSuccess(null);
+      return;
+    }
+    setAuthError(null);
+    setAuthSuccess(null);
+    setOwnerOtpLoading(true);
+    try {
+      const res = await api.sendOTP(ownerEmail, 'registration');
+      setOwnerOtpSent(true);
+      setOwnerOtpCooldown(60);
+      if (res.debug_otp) {
+        setOwnerDebugOtp(res.debug_otp);
+      } else {
+        setOwnerDebugOtp(null);
+      }
+      setAuthSuccess(res.message);
+      if (res.debug_otp) {
+        console.log(`[Clean AI Verification Code]: ${res.debug_otp}`);
+      }
+    } catch (err: any) {
+      setAuthError(err.message || 'Failed to send verification code.');
+    } finally {
+      setOwnerOtpLoading(false);
+    }
+  };
+
+  const handleVerifyOwnerOTP = async () => {
+    if (!ownerOtpCode.trim() || ownerOtpCode.trim().length < 6) {
+      setAuthError('Please enter the 6-digit verification code.');
+      setAuthSuccess(null);
+      return;
+    }
+    setAuthError(null);
+    setAuthSuccess(null);
+    setOwnerOtpLoading(true);
+    try {
+      const res = await api.verifyOTP(ownerEmail, ownerOtpCode, 'registration');
+      setOwnerOtpVerified(true);
+      setAuthSuccess(res.message);
+    } catch (err: any) {
+      setAuthError(err.message || 'Incorrect verification code. Please check your inbox and try again.');
+    } finally {
+      setOwnerOtpLoading(false);
+    }
+  };
+
   const handleOwnerAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    setAuthLoading(true);
     setAuthError(null);
+    setAuthSuccess(null);
+
+    if (isRegister && !ownerOtpVerified) {
+      setAuthError('Please click "Send OTP" and enter the 6-digit verification code sent to your email before completing registration.');
+      return;
+    }
+
+    setAuthLoading(true);
     try {
       if (isRegister) {
         await register({
           email: ownerEmail,
           password: ownerPassword,
           full_name: ownerName,
-          role: 'owner'
+          role: 'owner',
+          otp_code: ownerOtpCode.trim() || undefined
         });
       } else {
         await login(ownerEmail, ownerPassword);
@@ -239,6 +323,7 @@ export const OwnerPortal: React.FC = () => {
               onClick={() => {
                 setIsRegister(false);
                 setAuthError(null);
+                setAuthSuccess(null);
               }}
               className={`py-2 rounded-lg transition-all cursor-pointer ${
                 !isRegister
@@ -253,6 +338,7 @@ export const OwnerPortal: React.FC = () => {
               onClick={() => {
                 setIsRegister(true);
                 setAuthError(null);
+                setAuthSuccess(null);
               }}
               className={`py-2 rounded-lg transition-all cursor-pointer ${
                 isRegister
@@ -263,6 +349,13 @@ export const OwnerPortal: React.FC = () => {
               Sign Up
             </button>
           </div>
+
+          {authSuccess && (
+            <div className="p-3.5 rounded-xl bg-[#161616] border border-[#262626] text-[#F5F5F7] text-xs flex items-center gap-2.5 shadow-sm">
+              <CheckCircle2 size={16} className="shrink-0 text-emerald-400" />
+              <span className="leading-relaxed font-medium text-[#F5F5F7]">{authSuccess}</span>
+            </div>
+          )}
 
           {authError && (
             <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex flex-col gap-2">
@@ -276,6 +369,7 @@ export const OwnerPortal: React.FC = () => {
                   onClick={() => {
                     setIsRegister(false);
                     setAuthError(null);
+                    setAuthSuccess(null);
                   }}
                   className="self-start text-[11px] font-medium text-white underline underline-offset-2 hover:text-[#A1A1A6] transition-colors"
                 >
@@ -288,7 +382,9 @@ export const OwnerPortal: React.FC = () => {
           <form onSubmit={handleOwnerAuth} className="space-y-4">
             {isRegister && (
               <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-[#A1A1A6]">Full Name</label>
+                <label className="block text-xs font-semibold text-[#A1A1A6]">
+                  Full Name <span className="text-rose-400">*</span>
+                </label>
                 <div className="relative">
                   <User size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6E6E73]" />
                   <input
@@ -304,22 +400,103 @@ export const OwnerPortal: React.FC = () => {
             )}
 
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-[#A1A1A6]">Owner / Contractor Email</label>
-              <div className="relative">
-                <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6E6E73]" />
-                <input
-                  type="email"
-                  required
-                  value={ownerEmail}
-                  onChange={(e) => setOwnerEmail(e.target.value)}
-                  placeholder=""
-                  className="w-full pl-10 pr-3.5 py-2.5 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] focus:border-[#F5F5F7]/40 focus:outline-hidden"
-                />
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-semibold text-[#A1A1A6]">
+                  Owner / Contractor Email {isRegister && <span className="text-rose-400">*</span>}
+                </label>
+                {isRegister && ownerOtpVerified && (
+                  <span className="text-[11px] font-semibold text-emerald-400 flex items-center gap-1">
+                    <CheckCircle2 size={12} />
+                    Verified
+                  </span>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6E6E73]" />
+                  <input
+                    type="email"
+                    required
+                    disabled={isRegister && ownerOtpVerified}
+                    value={ownerEmail}
+                    onChange={(e) => {
+                      setOwnerEmail(e.target.value);
+                      if (ownerOtpVerified) {
+                        setOwnerOtpVerified(false);
+                        setOwnerOtpSent(false);
+                        setOwnerOtpCode('');
+                      }
+                    }}
+                    placeholder=""
+                    className="w-full pl-10 pr-3.5 py-2.5 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] focus:border-[#F5F5F7]/40 focus:outline-hidden"
+                  />
+                </div>
+                {isRegister && !ownerOtpVerified && (
+                  <button
+                    type="button"
+                    disabled={ownerOtpLoading || ownerOtpCooldown > 0}
+                    onClick={handleSendOwnerOTP}
+                    className="px-3 py-2.5 rounded-xl bg-[#161616] hover:bg-[#202020] border border-[#262626] text-xs font-semibold text-[#F5F5F7] transition-all cursor-pointer disabled:opacity-50 shrink-0"
+                  >
+                    {ownerOtpLoading ? (
+                      <Loader2 size={14} className="animate-spin text-[#F5F5F7]" />
+                    ) : ownerOtpCooldown > 0 ? (
+                      <span>Resend ({ownerOtpCooldown}s)</span>
+                    ) : (
+                      <span>{ownerOtpSent ? 'Resend' : 'Send OTP'}</span>
+                    )}
+                  </button>
+                )}
               </div>
             </div>
 
+            {/* Owner 6-Digit Email OTP Box */}
+            {isRegister && ownerOtpSent && !ownerOtpVerified && (
+              <div className="p-3.5 rounded-xl bg-[#161616] border border-[#262626] space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="font-semibold text-[#F5F5F7] text-xs">Enter 6-Digit Verification Code</label>
+                  <span className="text-[10px] text-[#A1A1A6]">Sent to owner email</span>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    maxLength={6}
+                    value={ownerOtpCode}
+                    onChange={(e) => setOwnerOtpCode(e.target.value.replace(/\D/g, ''))}
+                    className="flex-1 p-2 bg-[#1C1C1E] border border-[#333333] rounded-lg text-[#F5F5F7] font-mono text-center tracking-[4px] text-sm font-bold focus:border-[#F5F5F7]/40 focus:outline-hidden"
+                  />
+                  <button
+                    type="button"
+                    disabled={ownerOtpLoading || ownerOtpCode.length < 6}
+                    onClick={handleVerifyOwnerOTP}
+                    className="px-4 py-2 rounded-lg bg-[#F5F5F7] hover:bg-white text-[#050505] font-semibold text-xs transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    {ownerOtpLoading ? <Loader2 size={14} className="animate-spin text-[#050505]" /> : 'Verify'}
+                  </button>
+                </div>
+                {ownerDebugOtp && (
+                  <div className="flex items-center justify-between text-xs bg-[#1C1C1E] border border-[#262626] px-3 py-1.5 rounded-lg text-[#F5F5F7]">
+                    <span>Cloud Fallback Code: <strong className="text-white">{ownerDebugOtp}</strong></span>
+                    <button
+                      type="button"
+                      onClick={() => setOwnerOtpCode(ownerDebugOtp)}
+                      className="underline text-[11px] font-semibold cursor-pointer hover:text-white ml-2 text-[#A1A1A6]"
+                    >
+                      Auto-fill
+                    </button>
+                  </div>
+                )}
+                <p className="text-[11px] text-[#A1A1A6] flex items-center gap-1.5 font-medium">
+                  <CheckCircle2 size={13} className="text-emerald-400 shrink-0" />
+                  <span>Verification code dispatched to <strong className="text-[#F5F5F7] font-semibold">{ownerEmail}</strong></span>
+                </p>
+              </div>
+            )}
+
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-[#A1A1A6]">Password</label>
+              <label className="block text-xs font-semibold text-[#A1A1A6]">
+                Password {isRegister && <span className="text-rose-400">* <span className="text-[10px] text-[#6E6E73] font-normal">(min 6 chars)</span></span>}
+              </label>
               <div className="relative">
                 <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6E6E73]" />
                 <input
@@ -364,6 +541,7 @@ export const OwnerPortal: React.FC = () => {
               onClick={() => {
                 setIsRegister(!isRegister);
                 setAuthError(null);
+                setAuthSuccess(null);
               }}
               className="text-xs text-[#A1A1A6] hover:text-[#F5F5F7] transition-colors cursor-pointer"
             >
