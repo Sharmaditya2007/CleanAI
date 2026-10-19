@@ -161,6 +161,15 @@ export const MunicipalPortal: React.FC = () => {
         });
       } else {
         await login(officerEmail, officerPassword);
+        const token = localStorage.getItem('clean_ai_token');
+        if (token) {
+          const profile = await api.getMe();
+          if (profile.role !== 'officer') {
+            setAuthError(
+              `The account "${officerEmail}" is registered as a ${profile.role === 'owner' ? 'Facility Owner' : profile.role}. The Authority Portal requires an authorized Municipal Officer account. Please use officer credentials (e.g. officer@cleanai.gov) or sign up as an officer.`
+            );
+          }
+        }
       }
     } catch (err: any) {
       setAuthError(err.message || (isRegister ? 'Registration failed.' : 'Login failed. Please check officer credentials.'));
@@ -371,6 +380,39 @@ export const MunicipalPortal: React.FC = () => {
         </div>
 
         <div className="bg-[#0D0D0D] border border-[#262626] rounded-2xl p-6 space-y-5 shadow-xl">
+          {/* If user is already signed in with a different role (e.g. Owner), show notice */}
+          {user && user.role !== 'officer' && (
+            <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs space-y-2">
+              <div className="flex items-start gap-2">
+                <AlertTriangle size={15} className="shrink-0 text-amber-400 mt-0.5" />
+                <div>
+                  You are currently logged in as a <strong className="text-white capitalize">{user.role === 'owner' ? 'Facility Owner' : user.role}</strong> ({user.email}). The Authority Portal requires a <strong>Municipal Officer</strong> account.
+                </div>
+              </div>
+              <div className="flex items-center gap-3 pt-1 text-[11px]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOfficerEmail('officer@cleanai.gov');
+                    setOfficerPassword('Officer@123');
+                    setIsRegister(false);
+                    setAuthError(null);
+                  }}
+                  className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 font-semibold cursor-pointer transition-colors"
+                >
+                  Use Demo Officer Account
+                </button>
+                <button
+                  type="button"
+                  onClick={() => logout()}
+                  className="text-[#A1A1A6] hover:text-white underline cursor-pointer"
+                >
+                  Log out current account
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Segment switch tabs */}
           <div className="grid grid-cols-2 p-1 bg-[#141414] border border-[#262626] rounded-xl text-xs font-medium">
             <button
@@ -425,6 +467,21 @@ export const MunicipalPortal: React.FC = () => {
           )}
 
           <form onSubmit={handleOfficerAuth} className="space-y-4">
+            {!isRegister && (
+              <button
+                type="button"
+                onClick={() => {
+                  setOfficerEmail('officer@cleanai.gov');
+                  setOfficerPassword('Officer@123');
+                  setAuthError(null);
+                }}
+                className="w-full py-2 px-3 rounded-xl bg-[#141414] hover:bg-[#1a1a1a] border border-[#262626] text-xs text-[#A1A1A6] hover:text-[#F5F5F7] transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <ShieldCheck size={13} className="text-emerald-400" />
+                <span>Fill Demo Officer Credentials (officer@cleanai.gov)</span>
+              </button>
+            )}
+
             {isRegister && (
               <div className="space-y-1.5">
                 <label className="block text-xs font-semibold text-[#A1A1A6]">Officer Full Name</label>
@@ -479,6 +536,31 @@ export const MunicipalPortal: React.FC = () => {
                 </button>
               </div>
             </div>
+
+            {isRegister && (
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-semibold text-[#A1A1A6]">
+                    Officer Authorization Key <span className="text-rose-400">*</span>
+                  </label>
+                  <span className="text-[10px] text-[#6E6E73] font-mono">Key: MUNICIPAL-OFFICER-2026</span>
+                </div>
+                <div className="relative">
+                  <ShieldCheck size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6E6E73]" />
+                  <input
+                    type="text"
+                    required
+                    value={officerInviteCode}
+                    onChange={(e) => setOfficerInviteCode(e.target.value)}
+                    placeholder="MUNICIPAL-OFFICER-2026"
+                    className="w-full pl-10 pr-3.5 py-2.5 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] font-mono focus:border-[#F5F5F7]/40 focus:outline-hidden"
+                  />
+                </div>
+                <p className="text-[10px] text-[#6E6E73]">
+                  Authorized key provided by municipal administration to prevent unauthorized access.
+                </p>
+              </div>
+            )}
 
             <button
               type="submit"
