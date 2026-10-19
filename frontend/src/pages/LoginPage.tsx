@@ -224,8 +224,9 @@ export const LoginPage: React.FC = () => {
         )}
 
         {successMsg && (
-          <div className="p-3 bg-emerald-500/10 border border-emerald-500/25 rounded-xl text-emerald-400 text-xs font-semibold">
-            {successMsg}
+          <div className="p-3.5 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7] text-xs font-medium flex items-center gap-2.5 shadow-sm">
+            <CheckCircle2 size={16} className="shrink-0 text-emerald-400" />
+            <span className="leading-relaxed">{successMsg}</span>
           </div>
         )}
 
@@ -373,9 +374,9 @@ export const LoginPage: React.FC = () => {
 
               {/* 6-Digit Email OTP Box */}
               {isRegister && otpSent && !otpVerified && (
-                <div className="p-3.5 rounded-xl bg-[#141414] border border-emerald-500/30 space-y-2.5">
+                <div className="p-3.5 rounded-xl bg-[#161616] border border-[#262626] space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <label className="font-semibold text-emerald-400 text-xs">Enter 6-Digit Verification Code</label>
+                    <label className="font-semibold text-[#F5F5F7] text-xs">Enter 6-Digit Verification Code</label>
                     <span className="text-[10px] text-[#A1A1A6]">Sent to your inbox</span>
                   </div>
                   <div className="flex gap-2">
@@ -385,31 +386,32 @@ export const LoginPage: React.FC = () => {
                       value={otpCode}
                       onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
                       placeholder="123456"
-                      className="flex-1 p-2.5 bg-[#1C1C1E] border border-[#333333] rounded-lg text-[#F5F5F7] font-mono text-center tracking-[4px] text-base font-bold focus:border-emerald-400 focus:outline-hidden"
+                      className="flex-1 p-2.5 bg-[#1C1C1E] border border-[#333333] rounded-lg text-[#F5F5F7] font-mono text-center tracking-[4px] text-base font-bold focus:border-[#F5F5F7]/40 focus:outline-hidden"
                     />
                     <button
                       type="button"
                       disabled={otpLoading || otpCode.length < 6}
                       onClick={handleVerifyOTP}
-                      className="px-4 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-[#050505] font-semibold text-xs transition-colors cursor-pointer disabled:opacity-50"
+                      className="px-4 py-2.5 rounded-lg bg-[#F5F5F7] hover:bg-white text-[#050505] font-semibold text-xs transition-colors cursor-pointer disabled:opacity-50"
                     >
-                      {otpLoading ? <Loader2 size={14} className="animate-spin" /> : 'Verify'}
+                      {otpLoading ? <Loader2 size={14} className="animate-spin text-[#050505]" /> : 'Verify'}
                     </button>
                   </div>
                   {debugOtp && (
-                    <div className="flex items-center justify-between text-xs bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 rounded-lg text-emerald-400">
-                      <span>Cloud Fallback Code: <strong>{debugOtp}</strong></span>
+                    <div className="flex items-center justify-between text-xs bg-[#1C1C1E] border border-[#262626] px-3 py-2 rounded-lg text-[#F5F5F7]">
+                      <span>Cloud Fallback Code: <strong className="text-white">{debugOtp}</strong></span>
                       <button
                         type="button"
                         onClick={() => setOtpCode(debugOtp)}
-                        className="underline text-[11px] font-semibold cursor-pointer hover:text-emerald-300 ml-2"
+                        className="underline text-[11px] font-semibold cursor-pointer hover:text-white ml-2 text-[#A1A1A6]"
                       >
                         Auto-fill
                       </button>
                     </div>
                   )}
-                  <p className="text-[10px] text-[#A1A1A6]">
-                    Please enter the code sent to <strong>{email}</strong> to confirm this email is yours.
+                  <p className="text-[11px] text-[#A1A1A6] flex items-center gap-1.5 font-medium">
+                    <CheckCircle2 size={13} className="text-emerald-400 shrink-0" />
+                    <span>Verification code dispatched to <strong className="text-[#F5F5F7] font-semibold">{email}</strong></span>
                   </p>
                 </div>
               )}

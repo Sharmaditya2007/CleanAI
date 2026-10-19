@@ -509,9 +509,9 @@ export const MunicipalPortal: React.FC = () => {
           </div>
 
           {authSuccess && (
-            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2.5">
+            <div className="p-3.5 rounded-xl bg-[#161616] border border-[#262626] text-[#F5F5F7] text-xs flex items-center gap-2.5 shadow-sm">
               <CheckCircle2 size={16} className="shrink-0 text-emerald-400" />
-              <span className="leading-relaxed font-medium">{authSuccess}</span>
+              <span className="leading-relaxed font-medium text-[#F5F5F7]">{authSuccess}</span>
             </div>
           )}
 
@@ -605,9 +605,9 @@ export const MunicipalPortal: React.FC = () => {
 
             {/* Officer 6-Digit Email OTP Box */}
             {isRegister && officerOtpSent && !officerOtpVerified && (
-              <div className="p-3.5 rounded-xl bg-[#141414] border border-emerald-500/30 space-y-2">
+              <div className="p-3.5 rounded-xl bg-[#161616] border border-[#262626] space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <label className="font-semibold text-emerald-400 text-xs">Enter 6-Digit Verification Code</label>
+                  <label className="font-semibold text-[#F5F5F7] text-xs">Enter 6-Digit Verification Code</label>
                   <span className="text-[10px] text-[#A1A1A6]">Sent to municipal inbox</span>
                 </div>
                 <div className="flex gap-2">
@@ -617,32 +617,32 @@ export const MunicipalPortal: React.FC = () => {
                     value={officerOtpCode}
                     onChange={(e) => setOfficerOtpCode(e.target.value.replace(/\D/g, ''))}
                     placeholder="123456"
-                    className="flex-1 p-2 bg-[#1C1C1E] border border-[#333333] rounded-lg text-[#F5F5F7] font-mono text-center tracking-[4px] text-sm font-bold focus:border-emerald-400 focus:outline-hidden"
+                    className="flex-1 p-2 bg-[#1C1C1E] border border-[#333333] rounded-lg text-[#F5F5F7] font-mono text-center tracking-[4px] text-sm font-bold focus:border-[#F5F5F7]/40 focus:outline-hidden"
                   />
                   <button
                     type="button"
                     disabled={officerOtpLoading || officerOtpCode.length < 6}
                     onClick={handleVerifyOfficerOTP}
-                    className="px-3.5 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-[#050505] font-semibold text-xs transition-colors cursor-pointer disabled:opacity-50"
+                    className="px-4 py-2 rounded-lg bg-[#F5F5F7] hover:bg-white text-[#050505] font-semibold text-xs transition-colors cursor-pointer disabled:opacity-50"
                   >
-                    {officerOtpLoading ? <Loader2 size={14} className="animate-spin" /> : 'Verify'}
+                    {officerOtpLoading ? <Loader2 size={14} className="animate-spin text-[#050505]" /> : 'Verify'}
                   </button>
                 </div>
                 {officerDebugOtp && (
-                  <div className="flex items-center justify-between text-xs bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg text-emerald-400">
-                    <span>Cloud Fallback Code: <strong>{officerDebugOtp}</strong></span>
+                  <div className="flex items-center justify-between text-xs bg-[#1C1C1E] border border-[#262626] px-3 py-1.5 rounded-lg text-[#F5F5F7]">
+                    <span>Cloud Fallback Code: <strong className="text-white">{officerDebugOtp}</strong></span>
                     <button
                       type="button"
                       onClick={() => setOfficerOtpCode(officerDebugOtp)}
-                      className="underline text-[11px] font-semibold cursor-pointer hover:text-emerald-300 ml-2"
+                      className="underline text-[11px] font-semibold cursor-pointer hover:text-white ml-2 text-[#A1A1A6]"
                     >
                       Auto-fill
                     </button>
                   </div>
                 )}
-                <p className="text-[11px] text-emerald-400/90 flex items-center gap-1.5 font-medium">
-                  <CheckCircle2 size={12} className="text-emerald-400 shrink-0" />
-                  Verification code dispatched to <strong>{officerEmail}</strong>
+                <p className="text-[11px] text-[#A1A1A6] flex items-center gap-1.5 font-medium">
+                  <CheckCircle2 size={13} className="text-emerald-400 shrink-0" />
+                  <span>Verification code dispatched to <strong className="text-[#F5F5F7] font-semibold">{officerEmail}</strong></span>
                 </p>
               </div>
             )}
