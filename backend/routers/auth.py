@@ -7,7 +7,14 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from config import settings
 from database.db import db_manager, hash_password, verify_password
-from models.schemas import UserCreate, UserLogin, UserResponse, TokenResponse
+from models.schemas import (
+    UserCreate,
+    UserLogin,
+    UserResponse,
+    TokenResponse,
+    ForgotPasswordRequest,
+    ResetPasswordRequest,
+)
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 security = HTTPBearer(auto_error=False)
@@ -84,9 +91,17 @@ async def register(user_in: UserCreate):
             detail="A user with this email address is already registered. Please click 'Log In' to access your account."
         )
 
-    # Secure role assignment (cannot register as officer directly unless initial system bootstrap)
+    # Secure role assignment: officer accounts require valid municipal invite key unless system bootstrap
     role = user_in.role
-    if role not in ["officer", "owner", "citizen"]:
+    if role == "officer":
+        is_invite_valid = bool(user_in.invite_code and user_in.invite_code.strip() == settings.MUNICIPAL_INVITE_KEY)
+        existing_officers = await db_manager.find("users", {"role": "officer"})
+        if not is_invite_valid and len(existing_officers) > 0:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Municipal Officer accounts cannot be created publicly without an authorized municipal officer key. Contact your municipal health administration."
+            )
+    elif role not in ["owner", "citizen"]:
         role = "citizen"
 
     user_id = f"usr_{uuid.uuid4().hex[:10]}"
@@ -118,6 +133,62 @@ async def register(user_in: UserCreate):
             created_at=datetime.fromisoformat(new_user["created_at"])
         )
     )
+
+@router.post("/forgot-password")
+async def forgot_password(req: ForgotPasswordRequest):
+    user = await db_manager.find_one("users", {"email": req.email.lower()})
+    if not user:
+        return {
+            "success": True,
+            "message": "If this email exists in our registry, reset instructions have been issued."
+        }
+    
+    expire = datetime.utcnow() + timedelta(hours=1)
+    reset_token = jwt.encode(
+        {"sub": user["id"], "email": user["email"], "type": "password_reset", "exp": expire},
+        settings.JWT_SECRET,
+        algorithm=settings.ALGORITHM
+    )
+    await db_manager.update_one("users", {"id": user["id"]}, {"reset_token": reset_token})
+    return {
+        "success": True,
+        "message": "Password reset token generated successfully. Please enter your new password.",
+        "reset_token": reset_token
+    }
+
+@router.post("/reset-password")
+async def reset_password(req: ResetPasswordRequest):
+    try:
+        payload = jwt.decode(req.token, settings.JWT_SECRET, algorithms=[settings.ALGORITHM])
+        if payload.get("type") != "password_reset":
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid token type.")
+        user_id = payload.get("sub")
+        if not user_id:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid token.")
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Password reset token has expired. Please request a new one.")
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or malformed reset token.")
+
+    user = await db_manager.find_one("users", {"id": user_id})
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User account not found.")
+
+    if len(req.new_password) < 6:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Password must be at least 6 characters.")
+
+    new_hashed = hash_password(req.new_password)
+    now = datetime.utcnow().isoformat()
+    await db_manager.update_one("users", {"id": user_id}, {
+        "hashed_password": new_hashed,
+        "reset_token": None,
+        "updated_at": now
+    })
+
+    return {
+        "success": True,
+        "message": "Password reset successfully. You can now log in with your new password."
+    }
 
 @router.post("/login", response_model=TokenResponse)
 async def login(credentials: UserLogin):

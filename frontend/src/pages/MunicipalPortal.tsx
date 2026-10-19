@@ -23,10 +23,15 @@ import {
   MapPin,
   ExternalLink,
   ChevronRight,
-  Filter
+  Filter,
+  Building2,
+  BarChart3,
+  History,
+  Send,
+  Edit2
 } from 'lucide-react';
 import { api, getMediaUrl } from '../services/api';
-import { Toilet, Complaint } from '../types';
+import { Toilet, Complaint, Inspection, MunicipalAnalytics } from '../types';
 import { AIInspectModal } from '../components/AIInspectModal';
 import { useAuth } from '../context/AuthContext';
 
@@ -38,6 +43,7 @@ export const MunicipalPortal: React.FC = () => {
   const [officerName, setOfficerName] = useState('');
   const [officerEmail, setOfficerEmail] = useState('');
   const [officerPassword, setOfficerPassword] = useState('');
+  const [officerInviteCode, setOfficerInviteCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -45,16 +51,49 @@ export const MunicipalPortal: React.FC = () => {
   // Portal data states
   const [toilets, setToilets] = useState<Toilet[]>([]);
   const [complaints, setComplaints] = useState<Complaint[]>([]);
+  const [inspections, setInspections] = useState<Inspection[]>([]);
+  const [analytics, setAnalytics] = useState<MunicipalAnalytics | null>(null);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'toilets' | 'complaints' | 'register'>('toilets');
+  const [activeTab, setActiveTab] = useState<'toilets' | 'pending' | 'complaints' | 'history' | 'analytics' | 'register'>('toilets');
 
   // Search and filter states
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [complaintFilter, setComplaintFilter] = useState('all');
+  const [inspectionToiletFilter, setInspectionToiletFilter] = useState('all');
 
   // AI Inspection Modal state
   const [selectedToiletForInspect, setSelectedToiletForInspect] = useState<Toilet | null>(null);
+
+  // Approve / Reject state
+  const [rejectingToilet, setRejectingToilet] = useState<Toilet | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [isSubmittingDecision, setIsSubmittingDecision] = useState(false);
+
+  // Edit Toilet state
+  const [editingToilet, setEditingToilet] = useState<Toilet | null>(null);
+  const [editForm, setEditForm] = useState<{
+    name: string;
+    address: string;
+    locality: string;
+    city: string;
+    opening_hours: string;
+    accessibility: boolean;
+  }>({
+    name: '',
+    address: '',
+    locality: '',
+    city: '',
+    opening_hours: '',
+    accessibility: true
+  });
+  const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
+
+  // Assign task from complaint state
+  const [assigningComplaint, setAssigningComplaint] = useState<Complaint | null>(null);
+  const [assignmentPriority, setAssignmentPriority] = useState<string>('High');
+  const [assignmentNotes, setAssignmentNotes] = useState('');
+  const [isSubmittingAssignment, setIsSubmittingAssignment] = useState(false);
 
   // New Toilet Registration Form state
   const [regForm, setRegForm] = useState({
@@ -90,12 +129,16 @@ export const MunicipalPortal: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [tList, cList] = await Promise.all([
+      const [tList, cList, iList, aData] = await Promise.all([
         api.getToilets(),
-        api.getComplaints()
+        api.getComplaints(),
+        api.getInspections().catch(() => []),
+        api.getAnalytics().catch(() => null)
       ]);
       setToilets(tList);
       setComplaints(cList);
+      setInspections(iList);
+      setAnalytics(aData);
     } catch (err) {
       console.error('Failed to load municipal portal data:', err);
     } finally {
@@ -113,7 +156,8 @@ export const MunicipalPortal: React.FC = () => {
           email: officerEmail,
           password: officerPassword,
           full_name: officerName,
-          role: 'officer'
+          role: 'officer',
+          invite_code: officerInviteCode.trim() || undefined
         });
       } else {
         await login(officerEmail, officerPassword);
@@ -122,6 +166,89 @@ export const MunicipalPortal: React.FC = () => {
       setAuthError(err.message || (isRegister ? 'Registration failed.' : 'Login failed. Please check officer credentials.'));
     } finally {
       setAuthLoading(false);
+    }
+  };
+
+  const handleApproveRegistration = async (toiletId: string) => {
+    setIsSubmittingDecision(true);
+    try {
+      const updated = await api.approveToilet(toiletId);
+      setToilets((prev) => prev.map((t) => (t.id === toiletId ? updated : t)));
+      alert(`Toilet "${updated.name}" has been officially Approved and verified for public listing.`);
+    } catch (err: any) {
+      alert(err.message || 'Approval failed');
+    } finally {
+      setIsSubmittingDecision(false);
+    }
+  };
+
+  const handleRejectRegistration = async () => {
+    if (!rejectingToilet) return;
+    if (!rejectionReason.trim()) {
+      alert('A valid reason for rejection is mandatory.');
+      return;
+    }
+    setIsSubmittingDecision(true);
+    try {
+      const updated = await api.rejectToilet(rejectingToilet.id, rejectionReason.trim());
+      setToilets((prev) => prev.map((t) => (t.id === rejectingToilet.id ? updated : t)));
+      setRejectingToilet(null);
+      setRejectionReason('');
+      alert(`Facility "${updated.name}" has been marked Rejected.`);
+    } catch (err: any) {
+      alert(err.message || 'Rejection failed');
+    } finally {
+      setIsSubmittingDecision(false);
+    }
+  };
+
+  const handleOpenEditToilet = (toilet: Toilet) => {
+    setEditingToilet(toilet);
+    setEditForm({
+      name: toilet.name,
+      address: toilet.address,
+      locality: toilet.locality,
+      city: toilet.city,
+      opening_hours: toilet.opening_hours || '06:00 - 23:00',
+      accessibility: toilet.accessibility
+    });
+  };
+
+  const handleSaveToiletEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingToilet) return;
+    setIsSubmittingEdit(true);
+    try {
+      const updated = await api.updateToilet(editingToilet.id, editForm);
+      setToilets((prev) => prev.map((t) => (t.id === editingToilet.id ? updated : t)));
+      setEditingToilet(null);
+      alert(`Facility "${updated.name}" updated successfully.`);
+    } catch (err: any) {
+      alert(err.message || 'Update failed');
+    } finally {
+      setIsSubmittingEdit(false);
+    }
+  };
+
+  const handleCreateAssignment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!assigningComplaint) return;
+    setIsSubmittingAssignment(true);
+    try {
+      await api.createTask({
+        toilet_id: assigningComplaint.toilet_id,
+        priority: assignmentPriority,
+        notes: assignmentNotes.trim() || `Citizen report resolution: ${assigningComplaint.category}`
+      });
+      // Mark complaint in progress
+      await handleUpdateComplaintStatus(assigningComplaint.id, 'In Progress', 'Sanitation cleaning task assigned to facility owner / team.');
+      setAssigningComplaint(null);
+      setAssignmentNotes('');
+      alert('Cleaning order created and assigned to facility contractor in database!');
+    } catch (err: any) {
+      alert(err.message || 'Failed to dispatch cleaning order');
+    } finally {
+      setIsSubmittingAssignment(false);
     }
   };
 
@@ -447,8 +574,116 @@ export const MunicipalPortal: React.FC = () => {
         </div>
       </div>
 
+      {/* KPI Overview Metrics (Calculated dynamically from real database records) */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        {/* Total Facilities */}
+        <div
+          onClick={() => {
+            setActiveTab('toilets');
+            setStatusFilter('all');
+          }}
+          className="bg-[#0D0D0D] border border-[#262626] hover:border-[#3D3D3D] rounded-2xl p-4 transition-all cursor-pointer space-y-1 shadow-sm"
+        >
+          <div className="flex items-center justify-between text-xs text-[#A1A1A6]">
+            <span>Total Facilities</span>
+            <Building2 size={14} className="text-[#A1A1A6]" />
+          </div>
+          <div className="text-xl font-bold text-[#F5F5F7]">{toilets.length}</div>
+          <div className="text-[10px] text-[#6E6E73]">Registered in DB</div>
+        </div>
+
+        {/* Clean */}
+        <div
+          onClick={() => {
+            setActiveTab('toilets');
+            setStatusFilter('Clean');
+          }}
+          className="bg-[#0D0D0D] border border-[#262626] hover:border-emerald-500/40 rounded-2xl p-4 transition-all cursor-pointer space-y-1 shadow-sm"
+        >
+          <div className="flex items-center justify-between text-xs text-emerald-400">
+            <span>Verified Clean</span>
+            <CheckCircle2 size={14} />
+          </div>
+          <div className="text-xl font-bold text-emerald-400">
+            {toilets.filter((t) => t.verified_status === 'Clean').length}
+          </div>
+          <div className="text-[10px] text-[#6E6E73]">Officer certified</div>
+        </div>
+
+        {/* Needs Cleaning */}
+        <div
+          onClick={() => {
+            setActiveTab('toilets');
+            setStatusFilter('Needs Cleaning');
+          }}
+          className="bg-[#0D0D0D] border border-[#262626] hover:border-amber-500/40 rounded-2xl p-4 transition-all cursor-pointer space-y-1 shadow-sm"
+        >
+          <div className="flex items-center justify-between text-xs text-amber-400">
+            <span>Needs Cleaning</span>
+            <AlertTriangle size={14} />
+          </div>
+          <div className="text-xl font-bold text-amber-400">
+            {toilets.filter((t) => t.verified_status === 'Needs Cleaning').length}
+          </div>
+          <div className="text-[10px] text-[#6E6E73]">Action scheduled</div>
+        </div>
+
+        {/* Under Maintenance */}
+        <div
+          onClick={() => {
+            setActiveTab('toilets');
+            setStatusFilter('Under Maintenance');
+          }}
+          className="bg-[#0D0D0D] border border-[#262626] hover:border-rose-500/40 rounded-2xl p-4 transition-all cursor-pointer space-y-1 shadow-sm"
+        >
+          <div className="flex items-center justify-between text-xs text-rose-400">
+            <span>Maintenance</span>
+            <Wrench size={14} />
+          </div>
+          <div className="text-xl font-bold text-rose-400">
+            {toilets.filter((t) => t.verified_status === 'Under Maintenance').length}
+          </div>
+          <div className="text-[10px] text-[#6E6E73]">Repairs ongoing</div>
+        </div>
+
+        {/* Pending Approvals */}
+        <div
+          onClick={() => {
+            setActiveTab('pending');
+          }}
+          className="bg-[#0D0D0D] border border-[#262626] hover:border-[#3D3D3D] rounded-2xl p-4 transition-all cursor-pointer space-y-1 shadow-sm"
+        >
+          <div className="flex items-center justify-between text-xs text-[#A1A1A6]">
+            <span>Pending Approvals</span>
+            <Clock size={14} />
+          </div>
+          <div className="text-xl font-bold text-[#F5F5F7]">
+            {toilets.filter((t) => t.registration_status === 'Pending Approval').length}
+          </div>
+          <div className="text-[10px] text-[#6E6E73]">Owner submissions</div>
+        </div>
+
+        {/* Unresolved Complaints */}
+        <div
+          onClick={() => {
+            setActiveTab('complaints');
+            setComplaintFilter('Open');
+          }}
+          className="bg-[#0D0D0D] border border-[#262626] hover:border-sky-500/40 rounded-2xl p-4 transition-all cursor-pointer space-y-1 shadow-sm"
+        >
+          <div className="flex items-center justify-between text-xs text-sky-400">
+            <span>Open Reports</span>
+            <FileText size={14} />
+          </div>
+          <div className="text-xl font-bold text-sky-400">
+            {complaints.filter((c) => c.status !== 'Resolved').length}
+          </div>
+          <div className="text-[10px] text-[#6E6E73]">Citizen issues</div>
+        </div>
+      </div>
+
       {/* Clean Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-[#262626] pb-3 text-xs font-medium">
+      <div className="flex flex-wrap items-center gap-2 border-b border-[#262626] pb-3 text-xs font-medium">
         <button
           id="tab-toilets"
           onClick={() => setActiveTab('toilets')}
@@ -459,6 +694,21 @@ export const MunicipalPortal: React.FC = () => {
           }`}
         >
           Registered Toilets ({toilets.length})
+        </button>
+
+        <button
+          id="tab-pending"
+          onClick={() => setActiveTab('pending')}
+          className={`px-4 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+            activeTab === 'pending'
+              ? 'bg-[#F5F5F7] text-[#050505] font-semibold'
+              : 'text-[#A1A1A6] hover:text-[#F5F5F7] hover:bg-[#141414]'
+          }`}
+        >
+          <span>Pending Approvals ({toilets.filter((t) => t.registration_status === 'Pending Approval').length})</span>
+          {toilets.filter((t) => t.registration_status === 'Pending Approval').length > 0 && (
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+          )}
         </button>
 
         <button
@@ -474,6 +724,32 @@ export const MunicipalPortal: React.FC = () => {
           {complaints.filter((c) => c.status !== 'Resolved').length > 0 && (
             <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
           )}
+        </button>
+
+        <button
+          id="tab-history"
+          onClick={() => setActiveTab('history')}
+          className={`px-4 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+            activeTab === 'history'
+              ? 'bg-[#F5F5F7] text-[#050505] font-semibold'
+              : 'text-[#A1A1A6] hover:text-[#F5F5F7] hover:bg-[#141414]'
+          }`}
+        >
+          <History size={13} />
+          <span>Inspection History ({inspections.length})</span>
+        </button>
+
+        <button
+          id="tab-analytics"
+          onClick={() => setActiveTab('analytics')}
+          className={`px-4 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+            activeTab === 'analytics'
+              ? 'bg-[#F5F5F7] text-[#050505] font-semibold'
+              : 'text-[#A1A1A6] hover:text-[#F5F5F7] hover:bg-[#141414]'
+          }`}
+        >
+          <BarChart3 size={13} />
+          <span>Analytics & Reports</span>
         </button>
 
         <button
@@ -502,14 +778,14 @@ export const MunicipalPortal: React.FC = () => {
               <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6E6E73]" />
               <input
                 type="text"
-                placeholder="Search facility name, locality..."
+                placeholder="Search facility name, locality, ID..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-9 pr-3.5 py-2 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] placeholder-[#6E6E73] focus:outline-hidden"
               />
             </div>
 
-            <div className="flex items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5">
               {['all', 'Clean', 'Needs Cleaning', 'Under Maintenance'].map((st) => (
                 <button
                   key={st}
@@ -535,9 +811,9 @@ export const MunicipalPortal: React.FC = () => {
           ) : filteredToilets.length === 0 ? (
             <div className="bg-[#0D0D0D] border border-[#262626] rounded-2xl p-12 text-center space-y-3">
               <ShieldCheck size={32} className="mx-auto text-[#6E6E73]" />
-              <h3 className="text-sm font-semibold text-[#F5F5F7]">No Public Toilets Registered Yet</h3>
+              <h3 className="text-sm font-semibold text-[#F5F5F7]">No Matching Facilities Found</h3>
               <p className="text-xs text-[#A1A1A6] max-w-sm mx-auto">
-                The municipal registry is clean and ready for production. Click below to register your first verified facility.
+                No facilities match your search filter in the database. Clear filters or register a new facility.
               </p>
               <button
                 onClick={() => setActiveTab('register')}
@@ -554,8 +830,9 @@ export const MunicipalPortal: React.FC = () => {
                     <tr className="border-b border-[#262626] bg-[#121212] text-[#A1A1A6]">
                       <th className="py-3 px-4 font-semibold">Toilet Name & Address</th>
                       <th className="py-3 px-4 font-semibold">Locality / City</th>
-                      <th className="py-3 px-4 font-semibold">Current Verified Status</th>
-                      <th className="py-3 px-4 font-semibold">Last Verified Inspection</th>
+                      <th className="py-3 px-4 font-semibold">Registration</th>
+                      <th className="py-3 px-4 font-semibold">Verified Status</th>
+                      <th className="py-3 px-4 font-semibold">Last Inspection</th>
                       <th className="py-3 px-4 font-semibold text-right">Actions</th>
                     </tr>
                   </thead>
@@ -570,6 +847,17 @@ export const MunicipalPortal: React.FC = () => {
                           {toilet.locality}, {toilet.city}
                         </td>
                         <td className="py-3.5 px-4">
+                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold border ${
+                            toilet.registration_status === 'Approved'
+                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                              : toilet.registration_status === 'Pending Approval'
+                              ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                              : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                          }`}>
+                            {toilet.registration_status}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4">
                           {getStatusBadge(toilet.verified_status)}
                         </td>
                         <td className="py-3.5 px-4 text-[#A1A1A6]">
@@ -577,13 +865,21 @@ export const MunicipalPortal: React.FC = () => {
                             ? new Date(toilet.last_inspected_at).toLocaleDateString()
                             : 'Pending inspection'}
                         </td>
-                        <td className="py-3.5 px-4 text-right">
+                        <td className="py-3.5 px-4 text-right space-x-2">
+                          <button
+                            onClick={() => handleOpenEditToilet(toilet)}
+                            title="Edit facility details"
+                            className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-[#161616] hover:bg-[#202020] text-[#A1A1A6] hover:text-[#F5F5F7] border border-[#262626] transition-all inline-flex items-center gap-1 shadow-xs cursor-pointer"
+                          >
+                            <Edit2 size={12} />
+                            <span>Edit</span>
+                          </button>
                           <button
                             onClick={() => setSelectedToiletForInspect(toilet)}
                             className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#F5F5F7] hover:bg-white text-[#050505] transition-all inline-flex items-center gap-1.5 shadow-sm cursor-pointer"
                           >
                             <Camera size={13} />
-                            <span>AI Inspect & Verify</span>
+                            <span>AI Inspect</span>
                           </button>
                         </td>
                       </tr>
@@ -598,7 +894,107 @@ export const MunicipalPortal: React.FC = () => {
       )}
 
       {/* ======================================================== */}
-      {/* TAB 2: CUSTOMER COMPLAINTS MANAGEMENT                    */}
+      {/* TAB 2: PENDING APPROVALS                                  */}
+      {/* ======================================================== */}
+      {activeTab === 'pending' && (
+        <div className="space-y-4">
+          <div className="border-b border-[#262626] pb-3">
+            <h2 className="text-base font-semibold text-[#F5F5F7]">
+              Pending Facility Registrations
+            </h2>
+            <p className="text-xs text-[#A1A1A6]">
+              Review and authorize toilet facilities submitted by facility owners and contractors.
+            </p>
+          </div>
+
+          {toilets.filter((t) => t.registration_status === 'Pending Approval').length === 0 ? (
+            <div className="bg-[#0D0D0D] border border-[#262626] rounded-2xl p-12 text-center space-y-2">
+              <CheckCircle2 size={32} className="mx-auto text-emerald-400" />
+              <h3 className="text-sm font-semibold text-[#F5F5F7]">No Pending Registrations</h3>
+              <p className="text-xs text-[#A1A1A6]">
+                All submitted facilities have been reviewed and verified by municipal officers.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {toilets
+                .filter((t) => t.registration_status === 'Pending Approval')
+                .map((t) => (
+                  <div
+                    key={t.id}
+                    className="bg-[#0D0D0D] border border-[#262626] rounded-2xl p-5 space-y-3 shadow-lg"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#1C1C1E] pb-3">
+                      <div>
+                        <h3 className="text-sm font-semibold text-[#F5F5F7]">{t.name}</h3>
+                        <div className="text-xs text-[#A1A1A6] mt-0.5 flex items-center gap-2">
+                          <MapPin size={12} className="text-[#6E6E73]" />
+                          <span>{t.address}, {t.locality}, {t.city}</span>
+                        </div>
+                      </div>
+                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                        Pending Municipal Review
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                      <div>
+                        <span className="text-[#6E6E73] block">Submitted By</span>
+                        <span className="font-medium text-[#F5F5F7]">{t.owner_name || 'Owner'}</span>
+                      </div>
+                      <div>
+                        <span className="text-[#6E6E73] block">Contact</span>
+                        <span className="font-medium text-[#F5F5F7]">{t.contact_number || 'N/A'}</span>
+                      </div>
+                      <div>
+                        <span className="text-[#6E6E73] block">Operating Hours</span>
+                        <span className="font-medium text-[#F5F5F7]">{t.opening_hours || '24x7'}</span>
+                      </div>
+                      <div>
+                        <span className="text-[#6E6E73] block">Accessibility</span>
+                        <span className="font-medium text-[#F5F5F7]">{t.accessibility ? 'Wheelchair Accessible' : 'Standard'}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {t.facilities.map((f) => (
+                        <span
+                          key={f}
+                          className="px-2 py-0.5 rounded-md text-[11px] bg-[#161616] text-[#A1A1A6] border border-[#262626]"
+                        >
+                          {f}
+                        </span>
+                      ))}
+                    </div>
+
+                    <div className="pt-3 border-t border-[#1C1C1E] flex items-center justify-end gap-2">
+                      <button
+                        disabled={isSubmittingDecision}
+                        onClick={() => {
+                          setRejectingToilet(t);
+                          setRejectionReason('');
+                        }}
+                        className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 transition-colors cursor-pointer disabled:opacity-50"
+                      >
+                        Reject...
+                      </button>
+                      <button
+                        disabled={isSubmittingDecision}
+                        onClick={() => handleApproveRegistration(t.id)}
+                        className="px-4 py-1.5 rounded-xl text-xs font-semibold bg-emerald-500 hover:bg-emerald-400 text-[#050505] transition-colors cursor-pointer disabled:opacity-50 shadow-sm"
+                      >
+                        Approve Facility
+                      </button>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* TAB 3: CUSTOMER COMPLAINTS MANAGEMENT                    */}
       {/* ======================================================== */}
       {activeTab === 'complaints' && (
         <div className="space-y-4">
@@ -624,7 +1020,7 @@ export const MunicipalPortal: React.FC = () => {
             <div className="bg-[#0D0D0D] border border-[#262626] rounded-2xl p-12 text-center space-y-2">
               <p className="text-sm font-semibold text-[#F5F5F7]">No Customer Complaints</p>
               <p className="text-xs text-[#A1A1A6]">
-                There are currently no citizen complaints filed. When citizens submit issues via the reporting portal, they will appear here in real time.
+                There are currently no citizen complaints filed matching this filter.
               </p>
             </div>
           ) : (
@@ -671,28 +1067,28 @@ export const MunicipalPortal: React.FC = () => {
                           </span>
                         </div>
                         <p className="text-[#D1D1D6] p-3 rounded-xl bg-[#141414] border border-[#262626]">
-                          {c.description || 'No description provided.'}
+                          {c.description}
                         </p>
                         {c.resolution_notes && (
-                          <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[11px]">
-                            <strong>Resolution note:</strong> {c.resolution_notes}
+                          <div className="p-2.5 rounded-xl bg-emerald-500/5 border border-emerald-500/15 text-emerald-400 text-[11px]">
+                            <strong>Resolution Note:</strong> {c.resolution_notes}
                           </div>
                         )}
                       </div>
 
                       {c.photo_url && (
-                        <div className="sm:col-span-4 flex flex-col items-start sm:items-end">
-                          <span className="text-[11px] text-[#6E6E73] mb-1">Attached Photo:</span>
+                        <div className="sm:col-span-4">
+                          <span className="text-[#6E6E73] block mb-1">Citizen Photo:</span>
                           <a
                             href={getMediaUrl(c.photo_url)}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="block w-28 h-20 rounded-lg overflow-hidden border border-[#262626]"
+                            className="block rounded-xl overflow-hidden border border-[#262626] group relative aspect-video bg-black"
                           >
                             <img
                               src={getMediaUrl(c.photo_url)}
-                              alt="Complaint"
-                              className="w-full h-full object-cover"
+                              alt="Citizen report photo"
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                             />
                           </a>
                         </div>
@@ -701,8 +1097,20 @@ export const MunicipalPortal: React.FC = () => {
 
                     {/* Officer Status Action Buttons */}
                     <div className="pt-3 border-t border-[#1C1C1E] flex flex-wrap items-center justify-between gap-3 text-xs">
-                      <span className="text-[#6E6E73]">Update Complaint Status:</span>
-                      <div className="flex items-center gap-2">
+                      <span className="text-[#6E6E73]">Officer Actions:</span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          disabled={isUpdating}
+                          onClick={() => {
+                            setAssigningComplaint(c);
+                            setAssignmentNotes(`Citizen complaint regarding ${c.category.replace('_', ' ')}: ${c.description}`);
+                          }}
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#161616] hover:bg-[#202020] text-sky-400 border border-sky-500/25 transition-colors cursor-pointer disabled:opacity-50 inline-flex items-center gap-1.5"
+                        >
+                          <Send size={12} />
+                          <span>Assign Cleaning Order</span>
+                        </button>
+
                         {c.status !== 'Open' && c.status !== 'Received' && (
                           <button
                             disabled={isUpdating}
@@ -746,6 +1154,217 @@ export const MunicipalPortal: React.FC = () => {
 
         </div>
       )}
+
+      {/* ======================================================== */}
+      {/* TAB 4: INSPECTION HISTORY                                */}
+      {/* ======================================================== */}
+      {activeTab === 'history' && (
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#262626] pb-3">
+            <div>
+              <h2 className="text-base font-semibold text-[#F5F5F7]">
+                Inspection Audit History
+              </h2>
+              <p className="text-xs text-[#A1A1A6]">
+                All official AI computer vision inferences and officer-certified decisions saved in the municipal database.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-[#6E6E73]">Filter Facility:</span>
+              <select
+                value={inspectionToiletFilter}
+                onChange={(e) => setInspectionToiletFilter(e.target.value)}
+                className="px-3 py-1.5 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] focus:outline-hidden"
+              >
+                <option value="all">All Facilities</option>
+                {toilets.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {inspections.filter((ins) => inspectionToiletFilter === 'all' || ins.toilet_id === inspectionToiletFilter).length === 0 ? (
+            <div className="bg-[#0D0D0D] border border-[#262626] rounded-2xl p-12 text-center space-y-2">
+              <History size={32} className="mx-auto text-[#6E6E73]" />
+              <h3 className="text-sm font-semibold text-[#F5F5F7]">No Inspections Recorded</h3>
+              <p className="text-xs text-[#A1A1A6]">
+                Inspections will appear here once officers analyze facilities using the YOLO AI model.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {inspections
+                .filter((ins) => inspectionToiletFilter === 'all' || ins.toilet_id === inspectionToiletFilter)
+                .map((ins) => (
+                  <div
+                    key={ins.id}
+                    className="bg-[#0D0D0D] border border-[#262626] rounded-2xl p-5 space-y-3 shadow-lg"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#1C1C1E] pb-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-xs text-[#F5F5F7]">{ins.toilet_name || ins.toilet_id}</span>
+                          <span className="text-[#3D3D3D]">•</span>
+                          <span className="text-[11px] font-mono text-[#6E6E73]">{ins.id}</span>
+                        </div>
+                        <div className="text-[11px] text-[#6E6E73] mt-0.5">
+                          Inspected on {new Date(ins.created_at).toLocaleString()} by {ins.inspector_name}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {getStatusBadge(ins.officer_decision)}
+                        {ins.is_override && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                            Officer Override
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 text-xs">
+                      <div className="sm:col-span-8 space-y-2">
+                        <div>
+                          <span className="text-[#6E6E73]">AI Model Recommendation: </span>
+                          <strong className="text-[#F5F5F7]">{ins.ai_recommendation}</strong>
+                          <span className="text-[11px] text-[#6E6E73] ml-2">({ins.model_identifier})</span>
+                        </div>
+
+                        {ins.ai_raw_output?.detections && ins.ai_raw_output.detections.length > 0 && (
+                          <div className="space-y-1">
+                            <span className="text-[11px] text-[#6E6E73]">Model Detected Objects:</span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {ins.ai_raw_output.detections.map((d: any, idx: number) => (
+                                <span
+                                  key={idx}
+                                  className={`px-2 py-0.5 rounded-md text-[10px] font-mono border ${
+                                    d.is_dirty_indicator
+                                      ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                                      : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                  }`}
+                                >
+                                  {d.class_name} ({Math.round(d.confidence * 100)}%)
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {ins.is_override && ins.override_reason && (
+                          <div className="p-2.5 rounded-xl bg-amber-500/5 border border-amber-500/20 text-amber-400 text-[11px]">
+                            <strong>Override Justification:</strong> {ins.override_reason}
+                          </div>
+                        )}
+                      </div>
+
+                      {ins.image_url && (
+                        <div className="sm:col-span-4">
+                          <a
+                            href={getMediaUrl(ins.image_url)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block rounded-xl overflow-hidden border border-[#262626] group aspect-video bg-black"
+                          >
+                            <img
+                              src={getMediaUrl(ins.image_url)}
+                              alt="Inspection preview"
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                            />
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* TAB 5: ANALYTICS & REPORTS                               */}
+      {/* ======================================================== */}
+      {activeTab === 'analytics' && (
+        <div className="space-y-6">
+          <div className="border-b border-[#262626] pb-3">
+            <h2 className="text-base font-semibold text-[#F5F5F7]">
+              Municipal Cleanliness & Sanitation Intelligence
+            </h2>
+            <p className="text-xs text-[#A1A1A6]">
+              Real-time analytics and historical inspection metrics aggregated across all public facilities.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Compliance Rate Card */}
+            <div className="bg-[#0D0D0D] border border-[#262626] rounded-2xl p-6 space-y-3 shadow-lg">
+              <span className="text-xs text-[#A1A1A6] font-medium">Certified Compliance Rate</span>
+              <div className="text-4xl font-extrabold text-emerald-400">
+                {analytics?.cleanliness_rate ?? 0}%
+              </div>
+              <p className="text-xs text-[#6E6E73]">
+                Percentage of public facilities currently holding verified Clean status.
+              </p>
+            </div>
+
+            {/* Inspections Completed */}
+            <div className="bg-[#0D0D0D] border border-[#262626] rounded-2xl p-6 space-y-3 shadow-lg">
+              <span className="text-xs text-[#A1A1A6] font-medium">Completed Inspections</span>
+              <div className="text-4xl font-extrabold text-[#F5F5F7]">
+                {analytics?.completed_inspections ?? inspections.length}
+              </div>
+              <p className="text-xs text-[#6E6E73]">
+                Total verified audits executed with YOLO computer vision.
+              </p>
+            </div>
+
+            {/* Resolved Complaints */}
+            <div className="bg-[#0D0D0D] border border-[#262626] rounded-2xl p-6 space-y-3 shadow-lg">
+              <span className="text-xs text-[#A1A1A6] font-medium">Resolved Citizen Reports</span>
+              <div className="text-4xl font-extrabold text-sky-400">
+                {analytics?.resolved_complaints ?? complaints.filter((c) => c.status === 'Resolved').length}
+              </div>
+              <p className="text-xs text-[#6E6E73]">
+                Sanitation reports addressed and closed with resolution notes.
+              </p>
+            </div>
+          </div>
+
+          {/* Locality Breakdown */}
+          {analytics?.locality_breakdown && analytics.locality_breakdown.length > 0 && (
+            <div className="bg-[#0D0D0D] border border-[#262626] rounded-2xl p-6 space-y-4 shadow-lg">
+              <h3 className="text-sm font-semibold text-[#F5F5F7]">Locality Distribution</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {analytics.locality_breakdown.map((loc) => (
+                  <div key={loc.locality} className="p-3 rounded-xl bg-[#141414] border border-[#262626]">
+                    <div className="text-xs text-[#A1A1A6]">{loc.locality}</div>
+                    <div className="text-lg font-bold text-[#F5F5F7]">{loc.total} facilities</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Frequent Issues */}
+          {analytics?.frequent_issue_categories && analytics.frequent_issue_categories.length > 0 && (
+            <div className="bg-[#0D0D0D] border border-[#262626] rounded-2xl p-6 space-y-4 shadow-lg">
+              <h3 className="text-sm font-semibold text-[#F5F5F7]">Citizen Reported Issue Frequency</h3>
+              <div className="space-y-2">
+                {analytics.frequent_issue_categories.map((iss) => (
+                  <div key={iss.category} className="flex items-center justify-between text-xs p-2.5 rounded-xl bg-[#141414] border border-[#262626]">
+                    <span className="text-[#F5F5F7] font-medium">{iss.category}</span>
+                    <span className="px-2 py-0.5 rounded-md bg-[#222222] text-[#A1A1A6] font-mono">{iss.count} reports</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+
 
       {/* ======================================================== */}
       {/* TAB 3: REGISTER NEW TOILET FORM                          */}
@@ -1005,6 +1624,230 @@ export const MunicipalPortal: React.FC = () => {
                 Confirm Resolution
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal to Reject Facility Registration */}
+      {rejectingToilet && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-[#121212] border border-[#262626] rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-[#F5F5F7]">
+                Reject Facility Registration
+              </h3>
+              <button
+                onClick={() => setRejectingToilet(null)}
+                className="text-[#6E6E73] hover:text-[#F5F5F7]"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <p className="text-xs text-[#A1A1A6]">
+              Please state the official reason for rejecting <strong>{rejectingToilet.name}</strong>. This feedback will be recorded in the municipal audit trail.
+            </p>
+
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-[#A1A1A6]">
+                Rejection Reason <span className="text-rose-400">*</span>
+              </label>
+              <textarea
+                rows={3}
+                required
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="e.g. Inadequate ventilation, non-functional water fixtures, or inaccurate location coordinates."
+                className="w-full px-3 py-2 bg-[#161616] border border-[#262626] rounded-xl text-xs text-[#F5F5F7] placeholder-[#6E6E73] focus:outline-hidden"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                onClick={() => setRejectingToilet(null)}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium text-[#A1A1A6] hover:text-[#F5F5F7] bg-[#161616] cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={isSubmittingDecision}
+                onClick={handleRejectRegistration}
+                className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-rose-500 hover:bg-rose-400 text-white transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {isSubmittingDecision ? 'Rejecting...' : 'Confirm Rejection'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal to Edit Facility Information */}
+      {editingToilet && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-[#121212] border border-[#262626] rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl my-8">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-[#F5F5F7]">
+                Edit Facility: {editingToilet.name}
+              </h3>
+              <button
+                onClick={() => setEditingToilet(null)}
+                className="text-[#6E6E73] hover:text-[#F5F5F7]"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveToiletEdit} className="space-y-3 text-xs">
+              <div className="space-y-1">
+                <label className="text-[#A1A1A6] font-semibold">Facility Name</label>
+                <input
+                  type="text"
+                  required
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  className="w-full px-3 py-2 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7] focus:outline-hidden"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[#A1A1A6] font-semibold">City</label>
+                  <input
+                    type="text"
+                    required
+                    value={editForm.city}
+                    onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
+                    className="w-full px-3 py-2 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7] focus:outline-hidden"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[#A1A1A6] font-semibold">Locality / Area</label>
+                  <input
+                    type="text"
+                    required
+                    value={editForm.locality}
+                    onChange={(e) => setEditForm({ ...editForm, locality: e.target.value })}
+                    className="w-full px-3 py-2 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7] focus:outline-hidden"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[#A1A1A6] font-semibold">Address</label>
+                <input
+                  type="text"
+                  required
+                  value={editForm.address}
+                  onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                  className="w-full px-3 py-2 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7] focus:outline-hidden"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[#A1A1A6] font-semibold">Operating Hours</label>
+                <input
+                  type="text"
+                  value={editForm.opening_hours}
+                  onChange={(e) => setEditForm({ ...editForm, opening_hours: e.target.value })}
+                  className="w-full px-3 py-2 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7] focus:outline-hidden"
+                />
+              </div>
+
+              <label className="flex items-center gap-2 cursor-pointer pt-1 text-[#A1A1A6]">
+                <input
+                  type="checkbox"
+                  checked={editForm.accessibility}
+                  onChange={(e) => setEditForm({ ...editForm, accessibility: e.target.checked })}
+                  className="rounded bg-[#161616] border-[#333333] text-emerald-500"
+                />
+                <span>Wheelchair / Divyang Accessible</span>
+              </label>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#1C1C1E]">
+                <button
+                  type="button"
+                  onClick={() => setEditingToilet(null)}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium text-[#A1A1A6] hover:text-[#F5F5F7] bg-[#161616] cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingEdit}
+                  className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-[#F5F5F7] hover:bg-white text-[#050505] transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  {isSubmittingEdit ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal to Assign Cleaning Order to Contractor / Team */}
+      {assigningComplaint && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-[#121212] border border-[#262626] rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-[#F5F5F7]">
+                Dispatch Cleaning Order: {assigningComplaint.reference_number}
+              </h3>
+              <button
+                onClick={() => setAssigningComplaint(null)}
+                className="text-[#6E6E73] hover:text-[#F5F5F7]"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <p className="text-xs text-[#A1A1A6]">
+              Create an official sanitation assignment for <strong>{assigningComplaint.toilet_name}</strong> and notify cleaning staff.
+            </p>
+
+            <form onSubmit={handleCreateAssignment} className="space-y-3 text-xs">
+              <div className="space-y-1">
+                <label className="text-[#A1A1A6] font-semibold">Priority Level</label>
+                <select
+                  value={assignmentPriority}
+                  onChange={(e) => setAssignmentPriority(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7] focus:outline-hidden"
+                >
+                  <option value="Urgent">Urgent (Immediate Sanitation Hazard)</option>
+                  <option value="High">High (Severe Odor / Broken Fixture)</option>
+                  <option value="Medium">Medium (Routine Deep Clean)</option>
+                  <option value="Low">Low (Restock Supplies)</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[#A1A1A6] font-semibold">Assignment Instructions</label>
+                <textarea
+                  rows={3}
+                  required
+                  value={assignmentNotes}
+                  onChange={(e) => setAssignmentNotes(e.target.value)}
+                  placeholder="Specific instructions for the sanitation contractor..."
+                  className="w-full px-3 py-2 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7] placeholder-[#6E6E73] focus:outline-hidden"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#1C1C1E]">
+                <button
+                  type="button"
+                  onClick={() => setAssigningComplaint(null)}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium text-[#A1A1A6] hover:text-[#F5F5F7] bg-[#161616] cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingAssignment}
+                  className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-sky-500 hover:bg-sky-400 text-[#050505] transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  {isSubmittingAssignment ? 'Dispatching...' : 'Dispatch Cleaning Order'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

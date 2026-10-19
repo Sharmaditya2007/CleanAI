@@ -24,6 +24,7 @@ export const LandingPage: React.FC = () => {
   const [toilets, setToilets] = useState<Toilet[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [geoLoading, setGeoLoading] = useState(false);
 
   useEffect(() => {
     loadRecentToilets();
@@ -48,6 +49,25 @@ export const LandingPage: React.FC = () => {
     } else {
       navigate('/toilets');
     }
+  };
+
+  const handleLocateNearMe = () => {
+    if (!navigator.geolocation) {
+      navigate('/toilets');
+      return;
+    }
+    setGeoLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setGeoLoading(false);
+        navigate(`/toilets?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`);
+      },
+      () => {
+        setGeoLoading(false);
+        navigate('/toilets');
+      },
+      { timeout: 7000 }
+    );
   };
 
   // Sort by last_inspected_at descending if available, and take top 4
@@ -148,6 +168,20 @@ export const LandingPage: React.FC = () => {
               className="w-full pl-11 pr-4 py-3 bg-transparent text-sm text-[#F5F5F7] placeholder-[#6E6E73] focus:outline-hidden"
             />
           </div>
+          <button
+            type="button"
+            onClick={handleLocateNearMe}
+            disabled={geoLoading}
+            title="Search verified public toilets near your GPS location"
+            className="px-4 py-3 rounded-xl text-xs font-semibold text-[#A1A1A6] hover:text-[#F5F5F7] bg-[#161616] hover:bg-[#202020] border border-[#262626] transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0 disabled:opacity-50"
+          >
+            {geoLoading ? (
+              <Loader2 size={14} className="animate-spin text-[#F5F5F7]" />
+            ) : (
+              <Navigation size={13} className="text-emerald-400" />
+            )}
+            <span>Near Me</span>
+          </button>
           <button
             type="submit"
             className="px-6 py-3 rounded-xl text-sm font-semibold text-[#050505] bg-[#F5F5F7] hover:bg-white transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0 shadow-md"

@@ -152,6 +152,18 @@ async def list_complaints(
         for r in records
     ]
 
+def mask_email(email: Optional[str]) -> Optional[str]:
+    if not email or "@" not in email:
+        return "citizen@verified"
+    parts = email.split("@")
+    name = parts[0]
+    domain = parts[1]
+    if len(name) <= 2:
+        masked_name = name[0] + "*"
+    else:
+        masked_name = name[0] + ("*" * min(len(name) - 2, 4)) + name[-1]
+    return f"{masked_name}@{domain}"
+
 @router.get("/track/{reference_number}", response_model=ComplaintResponse)
 async def track_complaint(reference_number: str):
     complaint = await db_manager.find_one("complaints", {"reference_number": reference_number.strip().upper()})
@@ -162,8 +174,8 @@ async def track_complaint(reference_number: str):
         reference_number=complaint.get("reference_number"),
         toilet_id=complaint["toilet_id"],
         toilet_name=complaint.get("toilet_name"),
-        user_id=complaint.get("user_id"),
-        reporter_email=complaint.get("reporter_email"),
+        user_id=None, # Protected: hidden from public lookup
+        reporter_email=mask_email(complaint.get("reporter_email")),
         category=complaint.get("category"),
         description=complaint.get("description"),
         photo_url=complaint.get("photo_url"),

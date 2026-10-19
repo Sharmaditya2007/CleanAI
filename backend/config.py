@@ -113,6 +113,9 @@ class Settings:
     # Verification and staleness
     STALE_DAYS_THRESHOLD: int = int(os.getenv("STALE_DAYS_THRESHOLD", "3"))
 
+    # Security & Officer Authorization
+    MUNICIPAL_INVITE_KEY: str = os.getenv("MUNICIPAL_INVITE_KEY", "MUNICIPAL-OFFICER-2026")
+
 settings = Settings()
 
 # Ensure storage directories exist

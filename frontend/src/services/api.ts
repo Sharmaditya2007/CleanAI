@@ -183,6 +183,7 @@ export const api = {
     role: string;
     phone?: string;
     organization?: string;
+    invite_code?: string;
   }): Promise<{ access_token: string; user: User }> => {
     const res = await safeFetch(`${getApiBase()}/auth/register`, {
       method: 'POST',
@@ -192,6 +193,24 @@ export const api = {
         email: data.email.trim().toLowerCase(),
         full_name: data.full_name.trim()
       })
+    });
+    return handleResponse(res);
+  },
+
+  forgotPassword: async (email: string): Promise<{ success: boolean; message: string; reset_token?: string }> => {
+    const res = await safeFetch(`${getApiBase()}/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.trim().toLowerCase() })
+    });
+    return handleResponse(res);
+  },
+
+  resetPassword: async (token: string, newPassword: string): Promise<{ success: boolean; message: string }> => {
+    const res = await safeFetch(`${getApiBase()}/auth/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: token.trim(), new_password: newPassword })
     });
     return handleResponse(res);
   },

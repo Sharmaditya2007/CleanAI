@@ -313,6 +313,61 @@ class CleanAIFullSuiteTests(unittest.TestCase):
         self.assertEqual(mark_all.status_code, 200)
         self.assertEqual(mark_all.json()["status"], "success")
 
+    def test_14_officer_registration_guard(self):
+        """Test that unauthorized users cannot register as municipal officers without a valid invite key."""
+        # Attempt without code
+        resp_fail = self.client.post("/api/auth/register", json={
+            "email": "hacker_officer@test.gov",
+            "password": "Password@123",
+            "full_name": "Unauthorized Officer",
+            "role": "officer"
+        })
+        self.assertEqual(resp_fail.status_code, 403)
+
+        # Attempt with valid key
+        resp_ok = self.client.post("/api/auth/register", json={
+            "email": "valid_officer_test@test.gov",
+            "password": "Password@123",
+            "full_name": "Valid Test Officer",
+            "role": "officer",
+            "invite_code": "MUNICIPAL-OFFICER-2026"
+        })
+        self.assertEqual(resp_ok.status_code, 200)
+        self.assertEqual(resp_ok.json()["user"]["role"], "officer")
+
+    def test_15_forgot_and_reset_password_flow(self):
+        """Test forgot-password token issuance and password reset verification."""
+        resp_forgot = self.client.post("/api/auth/forgot-password", json={
+            "email": "owner@cleanai.com"
+        })
+        self.assertEqual(resp_forgot.status_code, 200)
+        reset_token = resp_forgot.json().get("reset_token")
+        self.assertIsNotNone(reset_token)
+
+        # Reset password
+        resp_reset = self.client.post("/api/auth/reset-password", json={
+            "token": reset_token,
+            "new_password": "NewOwnerPassword@123"
+        })
+        self.assertEqual(resp_reset.status_code, 200)
+
+        # Login with new password
+        resp_login = self.client.post("/api/auth/login", json={
+            "email": "owner@cleanai.com",
+            "password": "NewOwnerPassword@123"
+        })
+        self.assertEqual(resp_login.status_code, 200)
+
+        # Restore original password for other tests
+        resp_forgot2 = self.client.post("/api/auth/forgot-password", json={
+            "email": "owner@cleanai.com"
+        })
+        token2 = resp_forgot2.json()["reset_token"]
+        self.client.post("/api/auth/reset-password", json={
+            "token": token2,
+            "new_password": "Owner@123"
+        })
+
 if __name__ == "__main__":
     unittest.main()
 

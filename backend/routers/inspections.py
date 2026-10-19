@@ -192,11 +192,23 @@ async def confirm_inspection(
 @router.get("/inspections", response_model=List[InspectionResponse])
 async def list_inspections(
     toilet_id: Optional[str] = None,
-    limit: int = 50,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    limit: int = 100,
     current_user: Optional[dict] = Depends(require_auth)
 ):
     query = {"toilet_id": toilet_id} if toilet_id else {}
     records = await db_manager.find("inspections", query, sort=[("created_at", -1)], limit=limit)
+    if start_date or end_date:
+        filtered = []
+        for r in records:
+            c_date = str(r.get("created_at", ""))[:10]
+            if start_date and c_date < start_date:
+                continue
+            if end_date and c_date > end_date:
+                continue
+            filtered.append(r)
+        records = filtered
     formatted = []
     for r in records:
         formatted.append(InspectionResponse(

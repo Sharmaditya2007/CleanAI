@@ -35,9 +35,18 @@ export const FindToiletsPage: React.FC = () => {
   const [selectedToilet, setSelectedToilet] = useState<Toilet | null>(null);
 
   // User GPS coordinates
-  const [userCoords, setUserCoords] = useState<{ lat: number; lon: number } | null>(null);
+  const [userCoords, setUserCoords] = useState<{ lat: number; lon: number } | null>(() => {
+    const lat = searchParams.get('lat');
+    const lon = searchParams.get('lon');
+    if (lat && lon && !isNaN(parseFloat(lat)) && !isNaN(parseFloat(lon))) {
+      return { lat: parseFloat(lat), lon: parseFloat(lon) };
+    }
+    return null;
+  });
   const [geoLoading, setGeoLoading] = useState(false);
-  const [geoMessage, setGeoMessage] = useState<string | null>(null);
+  const [geoMessage, setGeoMessage] = useState<string | null>(() => {
+    return (searchParams.get('lat') && searchParams.get('lon')) ? 'Showing toilets near your requested coordinates.' : null;
+  });
 
   useEffect(() => {
     loadToilets();

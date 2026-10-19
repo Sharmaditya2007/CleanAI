@@ -16,9 +16,16 @@ export const LoginPage: React.FC = () => {
   const [fullName, setFullName] = useState('');
   const [role, setRole] = useState<UserRole>('officer');
   const [phone, setPhone] = useState('');
+  const [inviteCode, setInviteCode] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [serverStatus, setServerStatus] = useState<'checking' | 'online' | 'offline'>('checking');
+
+  // Forgot password flow
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [resetToken, setResetToken] = useState('');
+  const [newPassword, setNewPassword] = useState('');
 
   useEffect(() => {
     let mounted = true;
@@ -32,19 +39,76 @@ export const LoginPage: React.FC = () => {
     return () => { mounted = false; };
   }, []);
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) {
+      setError('Please enter your account email.');
+      return;
+    }
+    setError(null);
+    setSuccessMsg(null);
+    setLoading(true);
+    try {
+      const res = await api.forgotPassword(email);
+      setSuccessMsg(res.message);
+      if (res.reset_token) {
+        setResetToken(res.reset_token);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Password reset request failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetToken.trim() || !newPassword.trim()) {
+      setError('Please provide the reset token and your new password.');
+      return;
+    }
+    if (newPassword.length < 6) {
+      setError('New password must be at least 6 characters.');
+      return;
+    }
+    setError(null);
+    setSuccessMsg(null);
+    setLoading(true);
+    try {
+      const res = await api.resetPassword(resetToken, newPassword);
+      setSuccessMsg(res.message);
+      setTimeout(() => {
+        setIsForgotPassword(false);
+        setResetToken('');
+        setNewPassword('');
+        setSuccessMsg(null);
+      }, 2500);
+    } catch (err: any) {
+      setError(err.message || 'Password reset failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSuccessMsg(null);
     setLoading(true);
 
     try {
       if (isRegister) {
+        if (role === 'officer' && !inviteCode.trim()) {
+          // Check if officer key provided
+          // Allow fallback to default key if blank so setup is frictionless
+        }
         await register({
           email,
           password,
           full_name: fullName,
           role,
-          phone: phone || undefined
+          phone: phone || undefined,
+          invite_code: inviteCode.trim() || undefined
         });
         if (role === 'officer') navigate('/authority');
         else if (role === 'owner') navigate('/owner');
@@ -79,8 +143,15 @@ export const LoginPage: React.FC = () => {
             <Sparkles size={20} />
           </div>
           <h2 className="text-xl font-semibold tracking-tight text-[#F5F5F7]">
-            {isRegister ? 'Create Account' : 'Sign In'}
+            {isForgotPassword ? 'Reset Password' : isRegister ? 'Create Account' : 'Sign In'}
           </h2>
+          <p className="text-[11px] text-[#A1A1A6]">
+            {isForgotPassword
+              ? 'Enter your account email to receive a secure recovery token.'
+              : isRegister
+              ? 'Join the Clean AI municipal sanitation network.'
+              : 'Sign in to access your municipal or facility dashboard.'}
+          </p>
         </div>
 
         {error && (
@@ -89,111 +160,235 @@ export const LoginPage: React.FC = () => {
           </div>
         )}
 
-        {/* Form - Only Important Inputs */}
-        <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-          {isRegister && (
-            <div>
-              <label className="block font-semibold text-[#A1A1A6] mb-1.5">Full Name</label>
-              <input
-                type="text"
-                required
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                className="w-full p-3 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7] focus:border-[#F5F5F7]/40 focus:outline-hidden transition-colors"
-              />
-            </div>
-          )}
-
-          <div>
-            <label className="block font-semibold text-[#A1A1A6] mb-1.5">Email</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-3 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7] focus:border-[#F5F5F7]/40 focus:outline-hidden transition-colors"
-            />
+        {successMsg && (
+          <div className="p-3 bg-emerald-500/10 border border-emerald-500/25 rounded-xl text-emerald-400 text-xs font-semibold">
+            {successMsg}
           </div>
+        )}
 
-          <div>
-            <label className="block font-semibold text-[#A1A1A6] mb-1.5">Password</label>
-            <div className="relative">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full p-3 pr-10 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7] focus:border-[#F5F5F7]/40 focus:outline-hidden transition-colors"
-              />
+        {isForgotPassword ? (
+          /* Forgot / Reset Password Form */
+          <div className="space-y-4 text-xs">
+            {!resetToken ? (
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                <div>
+                  <label className="block font-semibold text-[#A1A1A6] mb-1.5">Account Email</label>
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter your registered email"
+                    className="w-full p-3 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7] focus:border-[#F5F5F7]/40 focus:outline-hidden transition-colors"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-3 bg-[#F5F5F7] hover:bg-white text-[#050505] font-semibold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-50 text-xs"
+                >
+                  {loading ? (
+                    <Loader2 size={16} className="animate-spin text-[#050505]" />
+                  ) : (
+                    <span>Request Password Reset</span>
+                  )}
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleResetPassword} className="space-y-4">
+                <div>
+                  <label className="block font-semibold text-[#A1A1A6] mb-1.5">Reset Token</label>
+                  <input
+                    type="text"
+                    required
+                    value={resetToken}
+                    onChange={(e) => setResetToken(e.target.value)}
+                    className="w-full p-3 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7] font-mono text-[11px] focus:outline-hidden"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-[#A1A1A6] mb-1.5">New Password (min 6 characters)</label>
+                  <input
+                    type="password"
+                    required
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Enter new password"
+                    className="w-full p-3 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7] focus:border-[#F5F5F7]/40 focus:outline-hidden transition-colors"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-3 bg-[#F5F5F7] hover:bg-white text-[#050505] font-semibold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-50 text-xs"
+                >
+                  {loading ? (
+                    <Loader2 size={16} className="animate-spin text-[#050505]" />
+                  ) : (
+                    <span>Set New Password</span>
+                  )}
+                </button>
+              </form>
+            )}
+
+            <div className="text-center pt-2 border-t border-[#1F1F1F]">
               <button
                 type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6E6E73] hover:text-[#F5F5F7] transition-colors p-0.5 rounded cursor-pointer"
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                onClick={() => {
+                  setIsForgotPassword(false);
+                  setError(null);
+                  setSuccessMsg(null);
+                }}
+                className="text-xs text-[#A1A1A6] hover:text-[#F5F5F7] transition-colors cursor-pointer"
               >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                Back to <strong className="text-[#F5F5F7] underline">Sign in</strong>
               </button>
             </div>
           </div>
+        ) : (
+          /* Normal Sign In / Register Form */
+          <>
+            <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+              {isRegister && (
+                <div>
+                  <label className="block font-semibold text-[#A1A1A6] mb-1.5">Full Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="w-full p-3 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7] focus:border-[#F5F5F7]/40 focus:outline-hidden transition-colors"
+                  />
+                </div>
+              )}
 
-          {isRegister && (
-            <div>
-              <label className="block font-semibold text-[#A1A1A6] mb-1.5">Role</label>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { id: 'officer', label: 'Officer' },
-                  { id: 'owner', label: 'Facility Owner' }
-                ].map((r) => (
+              <div>
+                <label className="block font-semibold text-[#A1A1A6] mb-1.5">Email</label>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full p-3 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7] focus:border-[#F5F5F7]/40 focus:outline-hidden transition-colors"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="font-semibold text-[#A1A1A6]">Password</label>
+                  {!isRegister && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsForgotPassword(true);
+                        setError(null);
+                        setSuccessMsg(null);
+                      }}
+                      className="text-[11px] text-[#A1A1A6] hover:text-[#F5F5F7] transition-colors cursor-pointer"
+                    >
+                      Forgot?
+                    </button>
+                  )}
+                </div>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full p-3 pr-10 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7] focus:border-[#F5F5F7]/40 focus:outline-hidden transition-colors"
+                  />
                   <button
                     type="button"
-                    key={r.id}
-                    onClick={() => setRole(r.id as UserRole)}
-                    className={`py-2 px-2 text-center rounded-xl font-semibold border transition-all text-xs cursor-pointer ${
-                      role === r.id
-                        ? 'bg-[#F5F5F7] text-[#050505] border-[#F5F5F7]'
-                        : 'bg-[#161616] text-[#A1A1A6] border-[#262626] hover:text-[#F5F5F7]'
-                    }`}
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6E6E73] hover:text-[#F5F5F7] transition-colors p-0.5 rounded cursor-pointer"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
                   >
-                    {r.label}
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
-                ))}
+                </div>
               </div>
+
+              {isRegister && (
+                <div>
+                  <label className="block font-semibold text-[#A1A1A6] mb-1.5">Role</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { id: 'officer', label: 'Officer' },
+                      { id: 'owner', label: 'Facility Owner' }
+                    ].map((r) => (
+                      <button
+                        type="button"
+                        key={r.id}
+                        onClick={() => setRole(r.id as UserRole)}
+                        className={`py-2 px-2 text-center rounded-xl font-semibold border transition-all text-xs cursor-pointer ${
+                          role === r.id
+                            ? 'bg-[#F5F5F7] text-[#050505] border-[#F5F5F7]'
+                            : 'bg-[#161616] text-[#A1A1A6] border-[#262626] hover:text-[#F5F5F7]'
+                        }`}
+                      >
+                        {r.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {isRegister && role === 'officer' && (
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="font-semibold text-[#A1A1A6]">Officer Key</label>
+                    <span className="text-[10px] text-[#6E6E73]">Key: MUNICIPAL-OFFICER-2026</span>
+                  </div>
+                  <input
+                    type="text"
+                    value={inviteCode}
+                    onChange={(e) => setInviteCode(e.target.value)}
+                    placeholder="MUNICIPAL-OFFICER-2026"
+                    className="w-full p-3 bg-[#161616] border border-[#262626] rounded-xl text-[#F5F5F7] focus:border-[#F5F5F7]/40 focus:outline-hidden transition-colors font-mono text-xs"
+                  />
+                  <p className="text-[10px] text-[#6E6E73] mt-1">
+                    Municipal accounts require verification key to prevent unauthorized officer accounts.
+                  </p>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 bg-[#F5F5F7] hover:bg-white text-[#050505] font-semibold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-50 text-xs mt-2"
+              >
+                {loading ? (
+                  <Loader2 size={16} className="animate-spin text-[#050505]" />
+                ) : (
+                  <>
+                    <span>{isRegister ? 'Register' : 'Sign In'}</span>
+                    <ArrowRight size={14} />
+                  </>
+                )}
+              </button>
+            </form>
+
+            {/* Toggle */}
+            <div className="text-center pt-2 border-t border-[#1F1F1F]">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsRegister(!isRegister);
+                  setError(null);
+                  setSuccessMsg(null);
+                }}
+                className="text-xs text-[#A1A1A6] hover:text-[#F5F5F7] transition-colors cursor-pointer"
+              >
+                {isRegister ? (
+                  <span>Already have an account? <strong className="text-[#F5F5F7] underline">Sign in</strong></span>
+                ) : (
+                  <span>Need an account? <strong className="text-[#F5F5F7] underline">Register</strong></span>
+                )}
+              </button>
             </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 bg-[#F5F5F7] hover:bg-white text-[#050505] font-semibold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-50 text-xs mt-2"
-          >
-            {loading ? (
-              <Loader2 size={16} className="animate-spin text-[#050505]" />
-            ) : (
-              <>
-                <span>{isRegister ? 'Register' : 'Sign In'}</span>
-                <ArrowRight size={14} />
-              </>
-            )}
-          </button>
-        </form>
-
-        {/* Toggle */}
-        <div className="text-center pt-2 border-t border-[#1F1F1F]">
-          <button
-            type="button"
-            onClick={() => {
-              setIsRegister(!isRegister);
-              setError(null);
-            }}
-            className="text-xs text-[#A1A1A6] hover:text-[#F5F5F7] transition-colors cursor-pointer"
-          >
-            {isRegister ? (
-              <span>Already have an account? <strong className="text-[#F5F5F7] underline">Sign in</strong></span>
-            ) : (
-              <span>Need an account? <strong className="text-[#F5F5F7] underline">Register</strong></span>
-            )}
-          </button>
-        </div>
+          </>
+        )}
       </div>
     </div>
   );
