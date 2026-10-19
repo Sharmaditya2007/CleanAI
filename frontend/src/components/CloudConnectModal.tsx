@@ -36,7 +36,7 @@ export const CloudConnectModal: React.FC<CloudConnectModalProps> = ({ isOpen, on
 
   useEffect(() => {
     if (isOpen) {
-      const custom = getCustomApiUrl() || '';
+      const custom = getCustomApiUrl() || 'https://cleanai-6pwl.onrender.com';
       setCurrentUrl(custom);
       setTestResult(null);
     }

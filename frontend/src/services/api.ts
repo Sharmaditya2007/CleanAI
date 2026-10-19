@@ -10,6 +10,8 @@ import {
   Notification
 } from '../types';
 
+export const DEFAULT_PRODUCTION_API = 'https://cleanai-6pwl.onrender.com/api';
+
 export function getApiBase(): string {
   if (typeof window !== 'undefined') {
     const custom = localStorage.getItem('clean_ai_custom_api_url');
@@ -23,6 +25,12 @@ export function getApiBase(): string {
     const clean = envUrl.trim();
     return clean.endsWith('/api') ? clean : `${clean.replace(/\/$/, '')}/api`;
   }
+  
+  // When running on a remote deployed domain like Vercel, default directly to Render backend
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    return DEFAULT_PRODUCTION_API;
+  }
+
   return '/api';
 }
 
